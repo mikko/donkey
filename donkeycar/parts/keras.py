@@ -8,9 +8,9 @@ functions to run and train autopilots using keras
 
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
-from tensorflow.python.keras.layers import Convolution2D
+from tensorflow.python.keras.layers import Convolution2D, Concatenate
 from tensorflow.python.keras.layers import Dropout, Flatten, Dense, Cropping2D, Lambda
-from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
 from donkeycar import util
 
@@ -25,7 +25,7 @@ class KerasPilot:
 
     def train(self, train_gen, val_gen,
               saved_model_path, epochs=100, steps=100, train_split=0.8,
-              verbose=1, min_delta=.0005, patience=5, use_early_stop=True):
+              verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
 
@@ -72,11 +72,16 @@ class KerasCategorical(KerasPilot):
         else:
             self.model = default_categorical()
 
-    def run(self, img_arr):
+    def run(self, img_arr, prev_img, angle_history, throttle_history):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        angle_binned, throttle = self.model.predict(img_arr)
+        prev_img = prev_img.reshape((1,) + prev_img.shape)
+        angle_history = angle_history.reshape((1,) + angle_history.shape)
+        throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
+        
+        angle_binned, throttle_binned = self.model.predict([img_arr, prev_img, angle_history, throttle_history])
         angle_unbinned = util.data.linear_unbin(angle_binned[0])
-        return angle_unbinned, throttle[0][0]
+        throttle_unbinned = util.data.linear_unbin(throttle_binned[0])
+        return angle_unbinned, throttle_unbinned
 
 
 class KerasLinear(KerasPilot):
@@ -89,10 +94,10 @@ class KerasLinear(KerasPilot):
         else:
             self.model = default_linear()
 
-    def run(self, img_arr):
+    def run(self, img_arr, prev_img, angle_history, throttle_history):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        outputs = self.model.predict(img_arr)
-        # print(len(outputs), outputs)
+        outputs = self.model.predict(img_arr, prev_img, angle_history, throttle_history)
+        print(len(outputs), outputs)
         steering = outputs[0]
         throttle = outputs[1]
         return steering[0][0], throttle[0][0]
@@ -101,6 +106,17 @@ class KerasLinear(KerasPilot):
 def default_categorical():
     img_in = Input(shape=(120, 160, 3),
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
+
+    prev_img_in = Input(shape=(120, 160, 3),
+                        name='prev_img_in')
+
+    angle_history = Input(shape=(10,),
+                             name='angle_hist_in')
+
+    throttle_history = Input(shape=(10,),
+                        name='throttle_hist_in')
+
+    # Current image convolution
     x = img_in
     x = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu')(
         x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
@@ -113,9 +129,25 @@ def default_categorical():
     x = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
 
+    # Previous image convolution
+    prev_img = prev_img_in
+    prev_img = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu')(
+        prev_img)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
+    prev_img = Convolution2D(32, (5, 5), strides=(2, 2), activation='relu')(
+        prev_img)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
+    prev_img = Convolution2D(64, (5, 5), strides=(2, 2), activation='relu')(
+        prev_img)  # 64 features, 5px5p kernal window, 2wx2h stride, relu
+    prev_img = Convolution2D(64, (3, 3), strides=(2, 2), activation='relu')(
+        prev_img)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
+    prev_img = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
+        prev_img)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
+
     # Possibly add MaxPooling (will make it less sensitive to position in image).  Camera angle fixed, so may not to be needed
 
+    x = Concatenate()([x, prev_img])
+
     x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
+    x = Concatenate(name='with_history')([x, throttle_history, angle_history])
     x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
     x = Dropout(.1)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
     x = Dense(50, activation='relu')(x)  # Classify the data into 50 features, make all negatives 0
@@ -125,13 +157,14 @@ def default_categorical():
         x)  # Connect every input with every output and output 15 hidden units. Use Softmax to give percentage. 15 categories and find best one based off percentage 0.0-1.0
 
     # continous output of throttle
-    throttle_out = Dense(1, activation='relu', name='throttle_out')(x)  # Reduce to 1 number, Positive number only
+    #throttle_out = Dense(1, activation='relu', name='throttle_out')(x)  # Reduce to 1 number, Positive number only
+    throttle_out = Dense(15, activation='softmax', name='throttle_out')(x)
 
-    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in, prev_img_in, angle_history, throttle_history], outputs=[angle_out, throttle_out])
     model.compile(optimizer='adam',
                   loss={'angle_out': 'categorical_crossentropy',
-                        'throttle_out': 'mean_absolute_error'},
-                  loss_weights={'angle_out': 0.9, 'throttle_out': .01})
+                        'throttle_out': 'categorical_crossentropy'},
+                  loss_weights={'angle_out': 1, 'throttle_out': .1})
 
     return model
 
