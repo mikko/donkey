@@ -45,7 +45,10 @@ class KerasPilot:
                                    verbose=verbose,
                                    mode='auto')
 
-        callbacks_list = [save_best]
+        tbCallBack = TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True,
+                                                 write_images=True)
+
+        callbacks_list = [save_best, tbCallBack]
 
         if use_early_stop:
             callbacks_list.append(early_stop)
