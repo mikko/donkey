@@ -45,7 +45,6 @@ class Tub(object):
         logger.info('path_in_tub: {}'.format(self.path))
         self.meta_path = os.path.join(self.path, 'meta.json')
         self.df = None
-
         exists = os.path.exists(self.path)
 
         if exists:
@@ -108,7 +107,6 @@ class Tub(object):
 
         return nums
 
-
     @property
     def inputs(self):
         return list(self.meta['inputs'])
@@ -142,9 +140,17 @@ class Tub(object):
     def make_record_paths_absolute(self, record_dict):
         d = {}
         for k, v in record_dict.items():
-            if type(v) == str: #filename
+            if type(v) == str:  # filename
                 if '.' in v:
                     v = os.path.join(self.path, v)
+            elif type(v) == list:
+                tmp = []
+                for item in v:
+                    if type(item) == str and '.' in item:
+                        item = os.path.join(self.path, item)
+                        tmp.append(item)
+                if len(tmp) > 0:
+                    v = tmp
             d[k] = v
 
         return d
@@ -194,13 +200,13 @@ class Tub(object):
             elif typ is 'image':
                 name = self.make_file_name(key, ext='.jpg')
                 val.save(os.path.join(self.path, name))
-                json_data[key]=name
+                json_data[key] = name
 
             elif typ == 'image_array':
                 img = Image.fromarray(np.uint8(val))
                 name = self.make_file_name(key, ext='.jpg')
                 img.save(os.path.join(self.path, name))
-                json_data[key]=name
+                json_data[key] = name
 
             else:
                 msg = 'Tub does not know what to do with this type {}'.format(typ)
@@ -211,8 +217,8 @@ class Tub(object):
         return self.current_ix
 
     def get_json_record_path(self, ix):
-        #return os.path.join(self.path, 'record_'+str(ix).zfill(6)+'.json')  #fill zeros
-        return os.path.join(self.path, 'record_' + str(ix) + '.json')  #don't fill zeros
+        # return os.path.join(self.path, 'record_'+str(ix).zfill(6)+'.json')  #fill zeros
+        return os.path.join(self.path, 'record_' + str(ix) + '.json')  # don't fill zeros
 
     def get_json_record(self, ix):
         path = self.get_json_record_path(ix)
@@ -236,7 +242,7 @@ class Tub(object):
         return data
 
     def read_record(self, record_dict):
-        data={}
+        data = {}
         for key, val in record_dict.items():
             typ = self.get_input_type(key)
 
@@ -245,11 +251,17 @@ class Tub(object):
                 img = Image.open((val))
                 val = np.array(img)
 
+            # Previous images
+            if typ == 'custom/prev_image':
+                # Use only the first image
+                img = Image.open(val[0])
+                val = np.array(img)
+
             data[key] = val
         return data
 
     def make_file_name(self, key, ext='.png'):
-        #name = '_'.join([str(self.current_ix).zfill(6), key, ext])
+        # name = '_'.join([str(self.current_ix).zfill(6), key, ext])
         name = '_'.join([str(self.current_ix), key, ext])  # don't fill zeros
         name = name = name.replace('/', '-')
         return name
@@ -330,7 +342,7 @@ class Tub(object):
             keys = list(self.df.columns)
 
         while True:
-            record_list = [ next(record_gen) for _ in range(batch_size) ]
+            record_list = [next(record_gen) for _ in range(batch_size)]
 
             batch_arrays = {}
             for i, k in enumerate(keys):
@@ -470,7 +482,7 @@ class TubReader(Tub):
 
         record_dict = self.get_record(self.read_ix)
         self.read_ix += 1
-        record = [record_dict[key] for key in args ]
+        record = [record_dict[key] for key in args]
         return record
 
 
@@ -492,7 +504,7 @@ class TubHandler():
 
         folders = self.get_tub_list()
         numbers = [get_tub_num(x) for x in folders]
-        next_number = max(numbers+[0]) + 1
+        next_number = max(numbers + [0]) + 1
         return next_number
 
     def create_tub_path(self):
@@ -521,7 +533,7 @@ class TubImageStacker(Tub):
         """
         take a numpy rgb image return a new single channel image converted to greyscale
         """
-        return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
+        return np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
 
     def stack3Images(self, img_a, img_b, img_c):
         """
@@ -536,9 +548,9 @@ class TubImageStacker(Tub):
 
         img_arr = np.zeros([width, height, 3], dtype=np.dtype('B'))
 
-        img_arr[...,0] = np.reshape(gray_a, (width, height))
-        img_arr[...,1] = np.reshape(gray_b, (width, height))
-        img_arr[...,2] = np.reshape(gray_c, (width, height))
+        img_arr[..., 0] = np.reshape(gray_a, (width, height))
+        img_arr[..., 1] = np.reshape(gray_b, (width, height))
+        img_arr[..., 2] = np.reshape(gray_c, (width, height))
 
         return img_arr
 
@@ -557,7 +569,7 @@ class TubImageStacker(Tub):
             for key, val in json_data.items():
                 typ = self.get_input_type(key)
 
-                #load objects that were saved as separate files
+                # load objects that were saved as separate files
                 if typ == 'image':
                     val = self.stack3Images(data_ch0[key], data_ch1[key], data[key])
                     data[key] = val
@@ -566,7 +578,6 @@ class TubImageStacker(Tub):
                     val = np.array(img)
 
         return data
-
 
 
 class TubTimeStacker(TubImageStacker):
@@ -637,7 +648,8 @@ class TubGroup(Tub):
             self.input_types.update(dict(zip(t.inputs, t.types)))
 
         logger.info('joining the tubs {} records together. This could take {} minutes.'.format(record_count,
-                                                                                         int(record_count / 300000)))
+                                                                                               int(
+                                                                                                   record_count / 300000)))
 
         self.meta = {'inputs': list(self.input_types.keys()),
                      'types': list(self.input_types.values())}
