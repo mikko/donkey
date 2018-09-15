@@ -242,8 +242,12 @@ class Tub(object):
 
             # load objects that were saved as separate files
             if typ == 'image_array':
-                img = Image.open((val))
-                val = np.array(img)
+                val = np.zeros([120,160,3],dtype=np.uint8)
+                try:
+                    img = Image.open((val))
+                    val = np.array(img)
+                except:
+                    pass
 
             data[key] = val
         return data
