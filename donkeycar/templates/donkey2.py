@@ -20,7 +20,7 @@ import donkeycar as dk
 #import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.keras import CustomModel
+from donkeycar.parts.keras import CustomSequential
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
@@ -210,12 +210,12 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     use the specified data in tub_names to train an artifical neural network
     saves the output trained model as model_name
     """
-    inputs = ['cam/image_array', 'cam/prev_images', 'history/angle', 'history/throttle']
+    inputs = ['cam/image_array']
     outputs = ['user/angle', 'user/throttle']
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    kl = CustomModel()
+    kl = CustomSequential()
     # Load base model if given
     if base_model_path is not None:
         base_model_path = os.path.expanduser(base_model_path)
