@@ -150,11 +150,11 @@ class CustomSequential(KerasPilot):
         else:
             self.model = custom_sequential()
 
-    def run(self, img_arr, prev_img, angle_history, throttle_history):
+    def run(self, img_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
 
-        angle, throttle = self.model.predict([img_arr, prev_img, angle_history, throttle_history])
-        return angle, throttle
+        angle, throttle = self.model.predict([img_arr])
+        return angle[0][0], throttle[0][0]
 
 def custom_sequential():
     img_in = Input(shape=(120, 160, 3),
