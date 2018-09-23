@@ -24,7 +24,7 @@ from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
 
-def drive(cfg, model_path=None, use_joystick=False):
+def _drive(cfg, model_path=None, use_joystick=False):
     """
     Construct a working robotic vehicle from many parts.
     Each part runs as a job in the Vehicle loop, calling either
@@ -127,13 +127,17 @@ def drive(cfg, model_path=None, use_joystick=False):
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
             max_loop_count=cfg.MAX_LOOPS)
 
+def start_drive(model_path=None, joystick=True):
+    if (not "donkey_config" in os.environ):
+        print('Environment variable donkey_config missing')
+        exit()
+    config_path = os.environ['donkey_config']
+    print(config_path)
+    cfg = dk.load_config(config_path=config_path)
+    _drive(cfg, model_path, joystick)
+
 if __name__ == '__main__':
     args = docopt(__doc__)
-    cfg = dk.load_config()
-    drive(cfg,
-          model_path = args['--model'],
+
+    start_drive(model_path = args['--model'],
           use_joystick=args['--js'])
-
-
-
-

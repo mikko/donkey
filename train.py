@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py (train) [--tub=<tub1,tub2,..tubn>]  (--model=<model>) [--base_model=<base_model>] [--no_cache]
+    train.py [--tub=<tub1,tub2,..tubn>]  (--model=<model>) [--base_model=<base_model>] [--no_cache]
 
 Options:
     -h --help        Show this screen.
@@ -77,9 +77,9 @@ def get_train_val_gen(inputs, outputs, tub_names):
     print('Loading data', tub_names)
     print('Inputs', inputs)
     print('Outputs', outputs)
-    tubs = glob.glob('%s' % tub_names)
+    tubs = glob.glob(str(tub_names))
+    print(tubs)
     for tub in tubs:
-        print(tub)
         meta = get_meta(tub)
         print(meta)
         # TODO: Check if meta.json specs match with given inputs and outputs
@@ -127,7 +127,12 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    cfg = dk.load_config()
+    if (not "donkey_config" in os.environ):
+        print('Environment variable donkey_config missing')
+        exit()
+    config_path = os.environ['donkey_config']
+    print(config_path)
+    cfg = dk.load_config(config_path=config_path)
 
     tub = args['--tub']
     new_model_path = args['--model']
