@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    drive.py (drive) [--model=<model>] [--js]
+    drive.py [--model=<model>] [--js]
 
 Options:
     -h --help        Show this screen.
@@ -11,6 +11,7 @@ Options:
 
 """
 import os
+import logging
 from docopt import docopt
 
 import donkeycar as dk
@@ -23,6 +24,9 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                     level=logging.INFO)
 
 def _drive(cfg, model_path=None, use_joystick=False):
     """
@@ -127,14 +131,14 @@ def _drive(cfg, model_path=None, use_joystick=False):
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
             max_loop_count=cfg.MAX_LOOPS)
 
-def start_drive(model_path=None, joystick=True):
+def start_drive(model_path=None, use_joystick=True):
     if (not "donkey_config" in os.environ):
-        print('Environment variable donkey_config missing')
-        exit()
+        logging.info('Environment variable donkey_config missing')
+        return
     config_path = os.environ['donkey_config']
-    print(config_path)
+    logging.info('Config path: {}'.format(config_path))
     cfg = dk.load_config(config_path=config_path)
-    _drive(cfg, model_path, joystick)
+    _drive(cfg, model_path, use_joystick)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
