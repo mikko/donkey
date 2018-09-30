@@ -2,11 +2,12 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    testbench.py [--path=<records_dir>]
+    testbench.py [--path=<records_dir>] [--lanes]
     
 Options:
-    -h --help        Show this screen.
+    -h --help         Show this screen
     --path TUBPATHS   Path of the record directory
+    --lanes           Draw detected lanes
 """
 
 from docopt import docopt
@@ -41,7 +42,37 @@ def drawOverlay(img, angle, throttle):
 
     return img
 
-def test(path):
+def detectEdges(img, horizonY = 75):
+    lightness = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)[:,:,1]
+    edges = cv2.Canny(lightness, 100, 200)
+    _, width = img.shape[:2]
+    cv2.rectangle(edges, (0, 0), (width, horizonY), (0, 0, 0), cv2.FILLED)
+    return edges
+
+def findLines(img, threshold = 20, minLineLength = 50, maxLineGap = 2):
+    return cv2.HoughLinesP(
+        img,
+        1,
+        np.pi/180,
+        threshold,
+        minLineLength,
+        maxLineGap)
+
+def drawLines(img, lines, color=[255, 0, 0], thickness=3):
+    if lines is None:
+        return img
+    for line in lines: 
+        for x1, y1, x2, y2 in line:
+            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+    return img
+
+def drawLanes(img):
+    edges = detectEdges(img)
+    lines = findLines(edges)
+    drawLines(img, lines)
+    return img
+
+def test(path, lanes):
     kl = CustomSequential()
 
     records = glob.glob('%s/record*.json' % path)
@@ -59,6 +90,11 @@ def test(path):
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = drawOverlay(img, angle, throttle)
+
+        if lanes:
+            img = drawLanes(img)
+            cv2.imwrite('test.jpg', img)
+
         cv2.imshow('image', img)
 
         # Draw overlay
@@ -70,4 +106,5 @@ if __name__ == '__main__':
     args = docopt(__doc__)
 
     path = args['--path']
-    test(path)
+    lanes = args['--lanes']
+    test(path, lanes)
