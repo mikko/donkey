@@ -110,9 +110,6 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     print('tub_names', tub_names)
     if not tub_names:
         tub_names = os.path.join(cfg.DATA_PATH, '*')
-    else:
-        print('No support for custom tubs yet')
-        exit(0)
 
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names)
 
