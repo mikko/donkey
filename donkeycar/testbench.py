@@ -2,11 +2,12 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    testbench.py [--path=<records_dir>]
+    testbench.py [--path=<records_dir>] [--model=<model>]
     
 Options:
     -h --help        Show this screen.
     --path TUBPATHS   Path of the record directory
+    --model MODELPATH  Path of the model file
 """
 
 from docopt import docopt
@@ -41,8 +42,10 @@ def drawOverlay(img, angle, throttle):
 
     return img
 
-def test(path):
+def test(path, model_path = None):
     kl = CustomSequential()
+    if model_path:
+        kl.load(model_path)
 
     records = glob.glob('%s/record*.json' % path)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
@@ -51,11 +54,13 @@ def test(path):
         with open(record, 'r') as record_file:
             data = json.load(record_file)
             imgPath = data['cam/image_array']
-            angle = data['user/angle']
-            throttle = data['user/throttle']
+            if not model_path:
+                angle = data['user/angle']
+                throttle = data['user/throttle']
         img = Image.open('%s/%s' % (path, imgPath))
         img = np.array(img)
-        # angle, throttle = kl.run(img)
+        if model_path:
+            angle, throttle = kl.run(img)
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = drawOverlay(img, angle, throttle)
@@ -63,11 +68,12 @@ def test(path):
 
         # Draw overlay
 
-        if cv2.waitKey(100) & 0xFF == ord('q'):
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
 if __name__ == '__main__':
     args = docopt(__doc__)
 
     path = args['--path']
-    test(path)
+    model_path = args['--model']
+    test(path, model_path)
