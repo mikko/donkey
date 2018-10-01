@@ -63,6 +63,7 @@ def test(path, model_path = None):
             angle, throttle = kl.run(img)
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (0,0), fx=2, fy=2)
         img = drawOverlay(img, angle, throttle)
         cv2.imshow('image', img)
 
