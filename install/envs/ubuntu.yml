@@ -6,4 +6,4 @@ dependencies:
 
 - pip:
   - theano==0.9.0
-  - tensorflow==1.7.0
+  - tensorflow==1.10.0

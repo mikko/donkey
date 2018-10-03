@@ -32,5 +32,5 @@ dependencies:
   - tornado==4.5.1
   - urllib3==1.22
   - werkzeug==0.12.2
-  - tensorflow==1.7.0
+  - tensorflow==1.10.0
 
