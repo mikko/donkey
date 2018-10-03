@@ -6,14 +6,11 @@ functions to run and train autopilots using keras
 
 """
 
+from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+from tensorflow.python.keras.layers import Convolution2D, Concatenate
+from tensorflow.python.keras.layers import Dropout, Flatten, Dense
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
-from tensorflow.python.keras.layers import Convolution2D, Concatenate
-from tensorflow.python.keras.layers import Dropout, Flatten, Dense, Cropping2D, Lambda
-from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-
-from donkeycar import util
-
 
 class KerasPilot:
 
@@ -149,6 +146,11 @@ class CustomSequential(KerasPilot):
             self.model = model
         else:
             self.model = custom_sequential()
+
+        model_json = self.model.to_json(indent=2)
+        with open("latest_model.json", "w") as json_file:
+            json_file.write(model_json)
+            print('Saved model to JSON')
 
     def run(self, img_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
