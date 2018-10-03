@@ -24,6 +24,7 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
+from donkeycar.parts.imu import Mpu6050
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -115,9 +116,12 @@ def _drive(cfg, model_path=None, use_joystick=False):
     V.add(steering, inputs=['angle'])
     V.add(throttle, inputs=['throttle'])
 
+    mpu6050 = Mpu6050()
+    V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+
     # add tub to save data
-    inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp']
-    types = ['image_array', 'float', 'float',  'str', 'str']
+    inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature']
+    types = ['image_array', 'float', 'float',  'str', 'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float', 'float']
 
     #multiple tubs
     #th = TubHandler(path=cfg.DATA_PATH)
