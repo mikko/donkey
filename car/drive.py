@@ -27,6 +27,7 @@ from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.imu import Mpu6050
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
+from donkeycar.parts.subwoofer import Subwoofer
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -108,7 +109,7 @@ def _drive(cfg, model_path=None, use_joystick=False):
     V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
 
     emergency_brake = EBrake()
-    V.add(emergency_brake, inputs=['sonar/time_to_impact', 'raw_throttle'], outputs=['throttle'])
+    V.add(emergency_brake, inputs=['sonar/time_to_impact', 'raw_throttle'], outputs=['throttle', 'emergency_brake'])
 
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
     steering = PWMSteering(controller=steering_controller,
@@ -126,6 +127,9 @@ def _drive(cfg, model_path=None, use_joystick=False):
 
     mpu6050 = Mpu6050()
     V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+
+    subwoofer = Subwoofer()
+    V.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
 
     # add tub to save data
     inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact']
