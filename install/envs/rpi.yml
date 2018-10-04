@@ -36,6 +36,7 @@ dependencies:
   - portend==2.1.2
   - protobuf==3.3.0
   - pyyaml==3.12
+  - pyserial==3.4
   - spidev==3.2
   - tempora==1.8
   - theano==0.9.0
