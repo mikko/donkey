@@ -37,6 +37,7 @@ dependencies:
   - protobuf==3.3.0
   - pyyaml==3.12
   - pyserial==3.4
+  - pygame==1.9.4
   - spidev==3.2
   - tempora==1.8
   - theano==0.9.0
