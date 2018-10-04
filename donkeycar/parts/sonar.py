@@ -31,10 +31,10 @@ class Sonar:
         print(line)
         values = line.split(" ")
         self.state = {
-          "left": values[0],
-          "center": values[1],
-          "right": values[2],
-          "timeToImpact": values[3]
+          "left": float(values[0]),
+          "center": float(values[1]),
+          "right": float(values[2]),
+          "timeToImpact": float(values[3])
         }
 
 if __name__ == "__main__":
