@@ -8,6 +8,7 @@ Usage:
 Options:
     -h --help        Show this screen.
     --js             Use physical joystick.
+    --noebrake       Disable emergency brake
 
 """
 import os
@@ -32,7 +33,7 @@ from donkeycar.parts.subwoofer import Subwoofer
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
-def _drive(cfg, model_path=None, use_joystick=False):
+def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     """
     Construct a working robotic vehicle from many parts.
     Each part runs as a job in the Vehicle loop, calling either
@@ -108,9 +109,6 @@ def _drive(cfg, model_path=None, use_joystick=False):
     sonar = Sonar() # What if device changes?
     V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
 
-    emergency_brake = EBrake()
-    V.add(emergency_brake, inputs=['sonar/time_to_impact', 'raw_throttle'], outputs=['throttle', 'emergency_brake'])
-
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
     steering = PWMSteering(controller=steering_controller,
                            left_pulse=cfg.STEERING_LEFT_PWM,
@@ -122,8 +120,15 @@ def _drive(cfg, model_path=None, use_joystick=False):
                            zero_pulse=cfg.THROTTLE_STOPPED_PWM,
                            min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
+    if (no_ebrake):
+        V.add(throttle, inputs=['raw_throttle'])
+    else:
+        emergency_brake = EBrake()
+        V.add(emergency_brake, inputs=['sonar/time_to_impact', 'raw_throttle'], outputs=['throttle', 'emergency_brake'])
+        V.add(throttle, inputs=['throttle'])
+
     V.add(steering, inputs=['angle'])
-    V.add(throttle, inputs=['throttle'])
+
 
     mpu6050 = Mpu6050()
     V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
@@ -147,17 +152,18 @@ def _drive(cfg, model_path=None, use_joystick=False):
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
             max_loop_count=cfg.MAX_LOOPS)
 
-def start_drive(model_path=None, use_joystick=True):
+def start_drive(model_path=None, use_joystick=True, no_ebrake=False):
     if (not "donkey_config" in os.environ):
         logging.info('Environment variable donkey_config missing')
         return
     config_path = os.environ['donkey_config']
     logging.info('Config path: {}'.format(config_path))
     cfg = dk.load_config(config_path=config_path)
-    _drive(cfg, model_path, use_joystick)
+    _drive(cfg, model_path, use_joystick, no_ebrake)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
 
     start_drive(model_path = args['--model'],
-          use_joystick=args['--js'])
+                use_joystick=args['--js'],
+                no_ebrake=args['--noebrake'])
