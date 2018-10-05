@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    drive.py [--model=<model>] [--js]
+    drive.py [--model=<model>] [--js] [--noebrake]
 
 Options:
     -h --help        Show this screen.

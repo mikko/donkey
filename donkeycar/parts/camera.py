@@ -9,6 +9,10 @@ class BaseCamera:
     def run_threaded(self):
         return self.frame
 
+def crop(img):
+    y,x,z = img.shape
+    return img[y*4//9:y,0:x]
+
 class PiCamera(BaseCamera):
     def __init__(self, resolution=(120, 160), framerate=20):
         from picamera.array import PiRGBArray
@@ -33,7 +37,7 @@ class PiCamera(BaseCamera):
 
     def run(self):
         f = next(self.stream)
-        frame = f.array
+        frame = crop(f.array)
         self.rawCapture.truncate(0)
         return frame
 
@@ -42,7 +46,7 @@ class PiCamera(BaseCamera):
         for f in self.stream:
             # grab the frame from the stream and clear the stream in
             # preparation for the next frame
-            self.frame = f.array
+            self.frame = crop(f.array)
             self.rawCapture.truncate(0)
 
             # if the thread indicator variable is set, stop the thread
