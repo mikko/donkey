@@ -284,7 +284,7 @@ class JoystickController(object):
                 print("throttle", self.throttle)
                 self.on_throttle_changes()
 
-            if button == 'trigger' and button_state == 1:
+            if button == 'a' and button_state == 1:
                 """
                 switch modes from:
                 user: human controlled steer and throttle
@@ -292,8 +292,8 @@ class JoystickController(object):
                 local: ai steering, ai throttle
                 """
                 if self.mode == 'user':
-                    self.mode = 'local_angle'
-                elif self.mode == 'local_angle':
+                #     self.mode = 'local_angle' # Disabled intentionally local angle
+                # elif self.mode == 'local_angle':
                     self.mode = 'local'
                 else:
                     self.mode = 'user'
@@ -312,7 +312,7 @@ class JoystickController(object):
 
                 print('recording:', self.recording)
 
-            if button == 'y' and button_state == 1:
+            if button == 'DISABLED' and button_state == 1:
                 """
                 increase max throttle setting
                 """
@@ -323,7 +323,7 @@ class JoystickController(object):
 
                 print('max_throttle:', self.max_throttle)
 
-            if button == 'a' and button_state == 1:
+            if button == 'DISABLED' and button_state == 1:
                 """
                 decrease max throttle setting
                 """
