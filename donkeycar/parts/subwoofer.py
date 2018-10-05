@@ -1,4 +1,10 @@
+import os
 import pygame
+
+os.environ["DISPLAY"] = "0"
+os.environ["home"] = "/home/pi"
+os.environ["XDG_RUNTIME_DIR"] = "/run/user/1000"
+
 
 class Subwoofer:
   def play(self, file, stop_others=True, loop=True):
@@ -20,13 +26,14 @@ class Subwoofer:
     print("starting subwoofer")
     try:
       self.media = {
-        "ai": pygame.mixer.Sound("../media/ai.ogg"),
-        "emergency": pygame.mixer.Sound("../media/emergency.ogg"),
-        "idle": pygame.mixer.Sound("../media/idle.ogg"),
-        "recording": pygame.mixer.Sound("../media/recording.ogg")
+        "ai": pygame.mixer.Sound("../../media/ai.ogg"),
+        "emergency": pygame.mixer.Sound("../../media/emergency.ogg"),
+        "idle": pygame.mixer.Sound("../../media/idle.ogg"),
+        "recording": pygame.mixer.Sound("../../media/recording.ogg")
       }
-    except:
+    except Exception as e:
       print("Error loading sound files")
+      print(e)
       self.on = False
       self.media = {}
 
