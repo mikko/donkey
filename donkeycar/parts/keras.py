@@ -79,10 +79,10 @@ class CustomWithHistory(KerasPilot):
         return angle, throttle
 
 def custom_with_history():
-    img_in = Input(shape=(120, 160, 3),
+    img_in = Input(shape=(100, 240, 3),
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
 
-    prev_img_in = Input(shape=(120, 160, 3),
+    prev_img_in = Input(shape=(100, 240, 3),
                         name='prev_img_in')
 
     angle_history = Input(shape=(10,),
@@ -159,7 +159,7 @@ class CustomSequential(KerasPilot):
         return angle[0][0], throttle[0][0]
 
 def custom_sequential():
-    img_in = Input(shape=(120, 160, 3),
+    img_in = Input(shape=(100, 240, 3),
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
 
     # Current image convolution
