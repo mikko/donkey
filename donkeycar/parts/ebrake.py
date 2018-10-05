@@ -5,6 +5,7 @@ class EBrake:
 
   def __init__(self):
     self.buffer = deque(maxlen=3)
+    self.abs = True # Used for alternating reverse and zero throttle
     print('Emergency brake started')
 
   def run(self, time_to_impact, raw_throttle):
@@ -13,8 +14,12 @@ class EBrake:
     filtered_time = median(list(self.buffer))
 
     if (filtered_time > 0 and filtered_time < 1):
-      print('\n\nEmergency brake used!!\n\n')
-      return -0.2, True
+      throttle = 0
+      if (self.abs):
+        throttle = -0.5
+      self.abs = not self.abs
+      print('\n\nEmergency brake used!!', throttle, '\n\n')
+      return throttle, True
     return raw_throttle, False
 
   def shutdown(self):
