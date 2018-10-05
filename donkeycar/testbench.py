@@ -32,7 +32,9 @@ cv2.resizeWindow('image', 160*4, 120*4)
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
-def drawAngleBar(img, angle):
+def drawAngleBar(img, data):
+    angle = data['user/angle']
+
     angle_color = (255, 0, 0) if angle > 0 else (255, 255, 0)
     angle_end = int(40 + (angle * 30))
     cv2.line(img, (10, 10), (70, 10), (255, 255, 255), 2)
@@ -40,7 +42,9 @@ def drawAngleBar(img, angle):
     cv2.putText(img, str(round(angle, 2)), (30, 20), font, 0.3, angle_color, 2)
 
 
-def drawThrottleBar(img, throttle):
+def drawThrottleBar(img, data):
+    throttle = data['user/throttle']
+
     throttle_end = int(60 - throttle * 40)
     cv2.line(img, (10, 20), (10, 60), (255, 255, 255), 2)
     cv2.line(img, (10, throttle_end), (10, 60), (255, 0, 255), 2)
@@ -48,7 +52,13 @@ def drawThrottleBar(img, throttle):
     cv2.putText(img, str(round(throttle, 2)), (20, 40), font, 0.3, (255, 0, 255), 2)
 
 
-def drawAccRadar(img, height, acc_x, acc_y, acc_z):
+def drawAccRadar(img, height, data):
+    global minY, maxY, minZ, maxZ, minX, maxX
+
+    acc_x = data['acceleration/x']
+    acc_y = data['acceleration/y']
+    acc_z = data['acceleration/z']
+
     origo_x = 40
     origo_y = height - 40
     radius = 30
@@ -61,6 +71,13 @@ def drawAccRadar(img, height, acc_x, acc_y, acc_z):
 
     cv2.circle(img, (pos_x, pos_y), size, (255, 0, 0), -1)
 
+    minY = min(minY, acc_y)
+    maxY = max(maxY, acc_y)
+    minZ = min(minZ, acc_z)
+    maxZ = max(maxZ, acc_z)
+    minX = min(minX, acc_x)
+    maxX = max(maxX, acc_x)
+
 
 def drawSector(img, origo, startAngle, endAngle, colors):
     s_size = (10, 10)
@@ -71,48 +88,66 @@ def drawSector(img, origo, startAngle, endAngle, colors):
     cv2.ellipse(img, origo, m_size, 180, startAngle, endAngle, colors[1], -1)
     cv2.ellipse(img, origo, s_size, 180, startAngle, endAngle, colors[0], -1)
 
-def drawProximitySensor(img, width, height, left, center, right):
 
+def getSectorColors(value):
     blank_color = (128, 128, 128)
-    active_color = (64, 64, 255)
+    far_color = (96, 255, 96)
+    med_color = (96, 255, 255)
+    near_color = (64, 64, 255)
+
+    if value == 0:
+        return [far_color, far_color, far_color]
+    elif value <= 5:
+        return [near_color, blank_color, blank_color]
+    elif value <= 100:
+        return [med_color, med_color, blank_color]
+    else:
+        return [far_color, far_color, far_color]
+
+
+def drawProximitySensor(img, width, height, data):
+
+    left = data['sonar/left']
+    center = data['sonar/center']
+    right = data['sonar/right']
+    impact_time = data['sonar/time_to_impact']
+
     origo_x = width - 40
-    origo_y = height - 20
+    origo_y = height - 30
 
-    drawSector(img, (origo_x-2, origo_y), 45, 75, [blank_color, blank_color, blank_color])
-    drawSector(img, (origo_x, origo_y), 75, 105, [blank_color, blank_color, blank_color])
-    drawSector(img, (origo_x+2, origo_y), 105, 135, [blank_color, blank_color, blank_color])
+    drawSector(img, (origo_x-2, origo_y), 45, 75, getSectorColors(left))
+    drawSector(img, (origo_x, origo_y), 75, 105, getSectorColors(center))
+    drawSector(img, (origo_x+2, origo_y), 105, 135, getSectorColors(right))
+
+    if impact_time >= 0 and impact_time < 1:
+        cv2.putText(img, 'STOP', (origo_x - 20, origo_y + 15), font, 0.5, (0,0,255), 2)
 
 
-def drawOverlay(img, angle, throttle, acc_x = 0, acc_y = 0, acc_z = 0):
+def drawOverlay(img, data, only_outputs):
 
     height, width, channels = img.shape
 
     # Angle bar on top
-    drawAngleBar(img, angle)
+    drawAngleBar(img, data)
 
     # Throttle bar at right
-    drawThrottleBar(img, throttle)
+    drawThrottleBar(img, data)
 
-    # Acceleration radar at bottom left
-    drawAccRadar(img, height, acc_x, acc_y, acc_z)
+    if not only_outputs:
+        # Acceleration radar at bottom left
+        drawAccRadar(img, height, data)
 
-    # Proximity sensor at bottom right
-    drawProximitySensor(img, width, height, 0, 0, 0)
+        # Proximity sensor at bottom right
+        drawProximitySensor(img, width, height, data)
 
     return img
 
 
 def test(path, model_path = None):
 
-    global minX, maxX, minY, maxY, maxZ, minZ
-
     kl = CustomSequential()
     if model_path:
         kl.load(model_path)
-
-    acc_x = 0
-    acc_y = 0
-    acc_z = 0
 
     records = glob.glob('%s/record*.json' % path)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
@@ -121,27 +156,16 @@ def test(path, model_path = None):
         with open(record, 'r') as record_file:
             data = json.load(record_file)
             img_path = data['cam/image_array']
-            if not model_path:
-                angle = data['user/angle']
-                throttle = data['user/throttle']
-                acc_x = data['acceleration/x']
-                acc_y = data['acceleration/y']
-                acc_z = data['acceleration/z']
         img = Image.open('%s/%s' % (path, img_path))
         img = np.array(img)
+        only_outputs = False
         if model_path:
-            angle, throttle = kl.run(img)
-
-        minY = min(minY, acc_y)
-        maxY = max(maxY, acc_y)
-        minZ = min(minZ, acc_z)
-        maxZ = max(maxZ, acc_z)
-        minX = min(minX, acc_x)
-        maxX = max(maxX, acc_x)
+            data = kl.run(img)
+            only_outputs = True
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (0,0), fx=2, fy=2)
-        img = drawOverlay(img, angle, throttle, acc_x, acc_y, acc_z)
+        img = drawOverlay(img, data, only_outputs)
         cv2.imshow('image', img)
 
         # Draw overlay
