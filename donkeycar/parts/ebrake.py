@@ -16,7 +16,7 @@ class EBrake:
     if (filtered_time > 0 and filtered_time < 1):
       throttle = 0
       if (self.abs):
-        throttle = -0.5
+        throttle = -1
       self.abs = not self.abs
       print('\n\nEmergency brake used!!', throttle, '\n\n')
       return throttle, True
