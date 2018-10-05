@@ -28,8 +28,7 @@ class Sonar:
     with serial.Serial(self.device, 115200, timeout=1) as ser:
       while self.on:
         line = ser.readline()   # read a '\n' terminated line
-        print(line)
-        values = line.split(" ")
+        values = line.decode("utf-8").split(" ")
         self.state = {
           "left": float(values[0]),
           "center": float(values[1]),
