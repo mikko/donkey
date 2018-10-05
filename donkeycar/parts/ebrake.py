@@ -4,7 +4,7 @@ from statistics import median
 class EBrake:
 
   def __init__(self):
-    self.buffer = deque(maxlen=3)
+    self.buffer = deque(maxlen=5)
     self.abs = True # Used for alternating reverse and zero throttle
     print('Emergency brake started')
 
