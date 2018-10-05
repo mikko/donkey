@@ -56,7 +56,7 @@ class Subwoofer:
         elif (prev_mode != mode and mode == "local"): # local mode means AI driven
             self.play("ai")
         # Start idle music if mode changed to something else and not recording
-        elif (prev_mode != mode and not recording ):
+        elif ((prev_mode != mode or prev_recording != recording) and not recording):
             self.play("idle")
         # Play emergency sound on top of other music and do not loop
         if (prev_emergency != emergency_brake and emergency_brake):
