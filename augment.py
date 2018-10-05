@@ -24,6 +24,12 @@ import copy
 import shutil
 import os
 
+
+def ensure_directory(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 def print_progress(count, total, name='', bar_length=20):
     if count % 10 == 0 or count == total:
         percent = 100 * (count / total)
@@ -33,47 +39,49 @@ def print_progress(count, total, name='', bar_length=20):
     if count == total:
         print()
 
-def initialize_records(records, path, out):
-    min_count = None
-    max_count = 0
+def initialize_records(records, path, out, target_dir):
     sum = 0
+
+    if path is not out:
+        target_path = '%s/%s' % (out, target_dir)
+        ensure_directory(target_path)
+        shutil.copy('%s/meta.json' % path, target_path)
+    else:
+        target_path = path
+
     for _, record in records:
-        max_count = max(max_count, _)
-        if not min_count:
-            min_count = _
-        else:
-            min_count = min(min_count, _)
         sum = sum + 1
         if path is not out:
             with open(record, 'r') as record_file:
                 data = json.load(record_file)
                 img_path = data['cam/image_array']
-            shutil.copy(record, out)
-            shutil.copy('%s/%s' % (path, img_path), out)
+            shutil.copy(record, target_path)
+            shutil.copy('%s/%s' % (path, img_path), target_path)
 
-    return (min_count, max_count, sum)
+    return (sum, target_path)
 
 
-def augmentation_round(out, start_number, total, name, augment_function):
-    records = glob.glob('%s/record*.json' % out)
+def augmentation_round(in_path, out, total, name, augment_function):
+    target = '%s/%s' % (out, name)
+    records = glob.glob('%s/record*.json' % in_path)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
 
-    current_id = start_number
+    ensure_directory(target)
+    shutil.copy('%s/meta.json' % in_path, target)
+
     count = 0
 
     for _, record in sorted(records):
         with open(record, 'r') as record_file:
             data = json.load(record_file)
-            imgPath = data['cam/image_array']
-
-        img = Image.open('%s/%s' % (out, imgPath))
+            img_path = data['cam/image_array']
+        img = Image.open('%s/%s' % (in_path, img_path))
         img = np.array(img)
-        write(out, current_id, img, data, name, augment_function)
-        current_id = current_id + 1
+        write(target, _, img, data, name, augment_function)
         count = count + 1
         print_progress(count, total, name)
 
-    return current_id
+    return (count, target)
 
 
 def write(out, id, img, data, name, augment_function):
@@ -98,8 +106,8 @@ def augment_flip(img, data):
     img = cv2.flip(img, 1)
 
     data['user/angle'] = 0 - data['user/angle']
-    data['gyro']['acceleration']['y'] = 0 - data['gyro']['acceleration']['y']
-    data['gyro']['gyro']['y'] = 0 - data['gyro']['gyro']['y']
+    data['acceleration/y'] = 0 - data['acceleration/y']
+    data['gyro/y'] = 0 - data['gyro/y']
 
     return (img, data)
 
@@ -147,22 +155,24 @@ def augment(target, out = None):
     records = glob.glob('%s/record*.json' % target)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
 
-    first_record, max_record, count = initialize_records(records, target, out)
-    next_record = max_record + 1
+    size, init_path = initialize_records(records, target, out, "original")
+
+    count = size
 
     if not out:
         out = target
     print('  Augmenting %d records from "%s". Target folder: "%s"' % (count, target, out))
-
-    print('  ---------------------')
-    next_record = augmentation_round(out, next_record, count, 'flipped', augment_flip)
-    count = next_record - first_record
-    next_record = augmentation_round(out, next_record, count, 'bright', augment_brightness)
-    count = next_record - first_record
-    next_record = augmentation_round(out, next_record, count, 'shadow', augment_shadow)
-    count = next_record - first_record
-    print('  ---------------------')
-    print('Augmentation done. %s new records created. Total records %s.' % (next_record - max_record - 1, count))
+    if target is not out:
+        print('  Original files copies to "%s"', init_path)
+    print('  -------------------------------------------------')
+    size, flipped_path = augmentation_round(init_path, out, count, 'flipped', augment_flip)
+    count = count + size
+    size, bright_path = augmentation_round(flipped_path, out, count, 'bright', augment_brightness)
+    count = count + size
+    size, shadow_path = augmentation_round(bright_path, out, count, 'shadow', augment_shadow)
+    count = count + size
+    print('  -------------------------------------------------')
+    print('Augmentation done. Total records %s.' % count)
 
 
 def is_empty(dir):
@@ -174,6 +184,9 @@ if __name__ == '__main__':
 
     target_path = args['--path']
     out_path = args['--out']
+
+    if out_path:
+        ensure_directory(out_path)
 
     if out_path and target_path is not out_path and not is_empty(out_path):
         print(' Target folder "%s" must be empty' % out_path)
