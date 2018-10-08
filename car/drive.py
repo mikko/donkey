@@ -22,7 +22,7 @@ from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
 from donkeycar.parts.keras import CustomSequential
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
-from donkeycar.parts.datastore import TubGroup, TubWriter
+from donkeycar.parts.datastore import DynamicTubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.imu import Mpu6050
@@ -144,9 +144,10 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     #th = TubHandler(path=cfg.DATA_PATH)
     #tub = th.new_tub_writer(inputs=inputs, types=types)
 
-    # single tub
-    tub = TubWriter(path=cfg.TUB_PATH, inputs=inputs, types=types)
-    V.add(tub, inputs=inputs, run_condition='recording')
+
+    tub_inputs = ['recording'] + inputs
+    tub = DynamicTubWriter(path=cfg.TUB_PATH, inputs=inputs, types=types)
+    V.add(tub, inputs=tub_inputs, run_condition='recording')
 
     # run the vehicle
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
