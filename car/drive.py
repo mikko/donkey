@@ -147,7 +147,7 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
 
     tub_inputs = ['recording'] + inputs
     tub = DynamicTubWriter(path=cfg.TUB_PATH, inputs=inputs, types=types)
-    V.add(tub, inputs=tub_inputs, run_condition='recording')
+    V.add(tub, inputs=tub_inputs)
 
     # run the vehicle
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
