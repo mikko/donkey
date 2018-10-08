@@ -498,7 +498,7 @@ class DynamicTubWriter():
         curr_recording = args[0]
         if (curr_recording) and curr_recording != self.recording:
             print("Recording started. Creating new tub")
-            self.writer = self.create_new()
+            self.create_new()
         elif(not curr_recording) and curr_recording != self.recording:
             print("Recording stopped")
             self.finalize_tub(self.writer)
