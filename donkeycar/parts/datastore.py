@@ -487,7 +487,9 @@ class DynamicTubWriter():
 
 
     def create_new(self):
-        self.writer = TubWriter(path=self.create_tub_path(), inputs=self.inputs, types=self.types)
+        new_path = self.create_tub_path()
+        print("New tub created", new_path)
+        self.writer = TubWriter(path=new_path, inputs=self.inputs, types=self.types)
 
     def finalize_tub(self, writer):
         print("Should now zip and send the tub somwhere")
@@ -495,12 +497,17 @@ class DynamicTubWriter():
     def run(self, *args):
         curr_recording = args[0]
         if (curr_recording) and curr_recording != self.recording:
-            self.finalize_tub(self.writer)
+            print("Recording started. Creating new tub")
             self.writer = self.create_new()
+        elif(not curr_recording) and curr_recording != self.recording:
+            print("Recording stopped")
+            self.finalize_tub(self.writer)
+
         self.recording = curr_recording
-        inputs = list(args)
-        del inputs[0] # Remove first argument as it's always the recording state
-        self.writer.run(*inputs)
+        if (self.recording):
+            inputs = list(args)
+            del inputs[0] # Remove first argument as it's always the recording state
+            self.writer.run(*inputs)
 
 class TubReader(Tub):
     def __init__(self, *args, **kwargs):
