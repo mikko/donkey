@@ -23,7 +23,7 @@ import re
 import copy
 import shutil
 import os
-
+from collections import deque
 
 def ensure_directory(directory):
     if not os.path.exists(directory):
@@ -60,14 +60,25 @@ def initialize_records(records, path, out, target_dir):
 
     return (sum, target_path)
 
+# TODO: better place for global stuff
+round_number = 0
 
-def augmentation_round(in_path, out, total, name, augment_function):
-    target = '%s/%s' % (out, name)
+def augmentation_round(in_path, out, total, name, augment_function, meta_function=None):
+    global round_number
+    round_number += 1
+    target = '%s/%s_%s' % (out, round_number, name)
     records = glob.glob('%s/record*.json' % in_path)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
 
     ensure_directory(target)
-    shutil.copy('%s/meta.json' % in_path, target)
+    if (meta_function is not None):
+        with open('%s/meta.json' % in_path, 'r') as meta_file:
+            raw_data = json.load(meta_file)
+            new_data = meta_function(raw_data)
+            with open('%s/meta.json' % target, 'w') as outfile:
+                json.dump(new_data, outfile)
+    else:
+        shutil.copy('%s/meta.json' % in_path, target)
 
     count = 0
 
@@ -88,6 +99,9 @@ def write(out, id, img, data, name, augment_function):
 
     new_img, new_data = augment_function(img, data)
 
+    # Augment function can return None if this item should be skipped in the return set
+    if (new_img is None or new_data is None):
+        return
     record_path = '%s/record_%d.json' % (out, id)
     image_name = '%d_%s.jpg' % (id, name)
     image_path = '%s/%s' % (out, image_name)
@@ -99,15 +113,68 @@ def write(out, id, img, data, name, augment_function):
     with open(record_path, 'w') as outfile:
         json.dump(new_data, outfile)
 
+# TODO: better place for global stuff
+HISTORY_LENGTH = 50
+current_history_length = 0
+history_buffer = {}
+
+def gen_history_meta(old_meta):
+    meta_with_history = copy.deepcopy(old_meta)
+    for input_key in old_meta['inputs']:
+        meta_with_history['inputs'].append('history/%s' % input_key)
+    for type_key in old_meta['types']:
+        meta_with_history['types'].append('%s_array' % type_key)
+    return meta_with_history
+
+def augment_history(img, data):
+    global current_history_length
+    global history_buffer
+    data_with_history = copy.deepcopy(data)
+    data_keys = data.keys()
+    for key in data_keys:
+        if (key not in history_buffer):
+            history_buffer[key] = deque(maxlen=HISTORY_LENGTH)
+        history_buffer[key].append(data[key])
+    current_history_length += 1
+    if (current_history_length < HISTORY_LENGTH):
+        return (None, None)
+
+    # TODO: this includes also the current value
+    for key in data_keys:
+        history_key = 'history/%s' % key
+        data_with_history[history_key] = list(history_buffer[key])
+
+    return (img, data_with_history)
 
 def augment_flip(img, data):
     data = copy.deepcopy(data)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.flip(img, 1)
 
-    data['user/angle'] = 0 - data['user/angle']
-    data['acceleration/y'] = 0 - data['acceleration/y']
-    data['gyro/y'] = 0 - data['gyro/y']
+    flip_keys = [
+        'user/angle',
+        'acceleration/y',
+        'gyro/y',
+        'history/user/angle',
+        'history/acceleration/y',
+        'history/gyro/y'
+    ]
+
+    for key in flip_keys:
+        if (isinstance(data[key], list)):
+            flipped_list = list(map(lambda value: 0 - value, data[key]))
+            data[key] = flipped_list
+        else:
+            data[key] = 0 - data[key]
+
+    # Sonar values have to be switched
+    old_sonar_left = data['sonar/left']
+    data['sonar/left'] = data['sonar/right']
+    data['sonar/right'] = old_sonar_left
+
+    old_sonar_history_left = data['history/sonar/left']
+    data['history/sonar/left'] = data['history/sonar/right']
+    data['history/sonar/right'] = old_sonar_history_left
 
     return (img, data)
 
@@ -165,7 +232,9 @@ def augment(target, out = None):
     if target is not out:
         print('  Original files copies to "%s"', init_path)
     print('  -------------------------------------------------')
-    size, flipped_path = augmentation_round(init_path, out, count, 'flipped', augment_flip)
+    size, history_path = augmentation_round(init_path, out, count, 'history', augment_history, gen_history_meta)
+    count = count + size
+    size, flipped_path = augmentation_round(history_path, out, count, 'flipped', augment_flip)
     count = count + size
     size, bright_path = augmentation_round(flipped_path, out, count, 'bright', augment_brightness)
     count = count + size
