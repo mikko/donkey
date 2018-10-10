@@ -12,6 +12,8 @@ from tensorflow.python.keras.layers import Dropout, Flatten, Dense
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
 
+import datetime
+
 class KerasPilot:
 
     def load(self, model_path):
@@ -42,7 +44,9 @@ class KerasPilot:
                                    verbose=verbose,
                                    mode='auto')
 
-        tbCallBack = TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True,
+        date = datetime.datetime.now().strftime('%y-%m-%d-%H-%M')
+
+        tbCallBack = TensorBoard(log_dir=('./tensorboard_logs/%s' % date), histogram_freq=0, write_graph=True,
                                                  write_images=True)
 
         callbacks_list = [save_best, tbCallBack]

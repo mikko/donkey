@@ -83,6 +83,7 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     if model_path:
         kl.load(model_path)
 
+    # TODO: reafactor this so that inputs array is not listed in here but in keras.py
     V.add(kl, inputs=['cam/image_array'],
               outputs=['pilot/angle', 'pilot/throttle'],
               run_condition='run_pilot')
