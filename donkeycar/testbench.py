@@ -30,6 +30,10 @@ minY = 0.0
 cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('image', 160*4, 120*4)
 
+def nothing(x):
+    pass
+cv2.createTrackbar("Speed", "image", 5, 10, nothing)
+
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 def drawAngleBar(img, data):
@@ -168,8 +172,11 @@ def test(path, model_path = None):
         img = drawOverlay(img, data, only_outputs)
         cv2.imshow('image', img)
 
+        speed = cv2.getTrackbarPos("Speed", "image")
+        delay = 1 + ((10 - speed) * 20)
+
         # Draw overlay
-        if cv2.waitKey(10) & 0xFF == ord('q'):
+        if cv2.waitKey(delay) & 0xFF == ord('q'):
             break
 
 
