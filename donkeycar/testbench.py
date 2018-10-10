@@ -3,7 +3,7 @@ Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
     testbench.py [--path=<records_dir>] [--model=<model>]
-    
+
 Options:
     -h --help        Show this screen.
     --path TUBPATHS   Path of the record directory
@@ -179,9 +179,3 @@ if __name__ == '__main__':
     path = args['--path']
     model_path = args['--model']
     test(path, model_path)
-    # y up-down
-    # z left-right
-    # x gravity
-    print(f'z: {minZ}, {maxZ}')
-    print(f'y: {minY}, {maxY}')
-    print(f'x: {minX}, {maxX}')
