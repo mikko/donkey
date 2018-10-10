@@ -19,7 +19,7 @@ from docopt import docopt
 
 import donkeycar as dk
 # import parts
-from donkeycar.parts.keras import CustomSequential
+from donkeycar.parts.keras import CustomWithHistory
 
 # These used to live in config but not anymore
 BATCH_SIZE = 128
@@ -96,12 +96,22 @@ def get_train_val_gen(inputs, outputs, tub_names):
 
 
 def train(tub_names, new_model_path, base_model_path=None ):
-    inputs = ['cam/image_array']
+    inputs = [
+        'cam/image_array',
+        'history/user/angle',
+        'history/user/throttle',
+        'history/acceleration/x',
+        'history/acceleration/y',
+        'history/acceleration/z',
+        'history/sonar/left',
+        'history/sonar/right',
+        'history/sonar/center',
+    ]
     outputs = ['user/angle', 'user/throttle']
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    kl = CustomSequential()
+    kl = CustomWithHistory()
     # Load base model if given
     if base_model_path is not None:
         base_model_path = os.path.expanduser(base_model_path)
