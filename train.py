@@ -21,6 +21,11 @@ import donkeycar as dk
 # import parts
 from donkeycar.parts.keras import CustomSequential
 
+# These used to live in config but not anymore
+BATCH_SIZE = 128
+TRAIN_TEST_SPLIT = 0.8
+
+
 def load_image(path):
     img = Image.open(path)
     return np.array(img)
@@ -51,7 +56,7 @@ def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
     # 1: [output_1[batch_size],output_2[batch_size]]
     record_gen = get_generator(input_keys, output_keys, records, meta, tub_path)
     while True:
-        raw_batch = [next(record_gen) for _ in range(cfg.BATCH_SIZE)]
+        raw_batch = [next(record_gen) for _ in range(BATCH_SIZE)]
         inputs = [[] for _ in range(len(input_keys))]
         outputs = [[] for _ in range(len(output_keys))]
         for rec in raw_batch:
@@ -85,16 +90,12 @@ def get_train_val_gen(inputs, outputs, tub_names):
         # TODO: Check if meta.json specs match with given inputs and outputs
         record_files = glob.glob('%s/record*.json' % tub)
         np.random.shuffle(record_files)
-        split = int(round(len(record_files) * cfg.TRAIN_TEST_SPLIT))
+        split = int(round(len(record_files) * TRAIN_TEST_SPLIT))
         train_files, validation_files = record_files[:split], record_files[split:]
     return get_batch_generator(inputs, outputs, train_files, meta, tub), get_batch_generator(inputs, outputs, validation_files, meta, tub), len(record_files)
 
 
-def train(cfg, tub_names, new_model_path, base_model_path=None ):
-    """
-    use the specified data in tub_names to train an artifical neural network
-    saves the output trained model as model_name
-    """
+def train(tub_names, new_model_path, base_model_path=None ):
     inputs = ['cam/image_array']
     outputs = ['user/angle', 'user/throttle']
 
@@ -109,33 +110,28 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     # Support for multiple paths
     print('tub_names', tub_names)
     if not tub_names:
-        tub_names = os.path.join(cfg.DATA_PATH, '*')
+        print('No tub path given')
+        return
+        # tub_names = os.path.join(cfg.DATA_PATH, '*')
 
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names)
 
-    steps_per_epoch = total_train // cfg.BATCH_SIZE
+    steps_per_epoch = total_train // BATCH_SIZE
 
     kl.train(train_gen,
              val_gen,
              saved_model_path=new_model_path,
              steps=steps_per_epoch,
-             train_split=cfg.TRAIN_TEST_SPLIT)
+             train_split=TRAIN_TEST_SPLIT)
 
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    if (not "donkey_config" in os.environ):
-        print('Environment variable donkey_config missing')
-        exit()
-    config_path = os.environ['donkey_config']
-    print(config_path)
-    cfg = dk.load_config(config_path=config_path)
-
     tub = args['--tub']
     new_model_path = args['--model']
     base_model_path = args['--base_model']
     cache = not args['--no_cache']
-    train(cfg, tub, new_model_path, base_model_path)
+    train(tub, new_model_path, base_model_path)
 
 
 
