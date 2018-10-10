@@ -20,7 +20,7 @@ import donkeycar as dk
 #import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.keras import CustomSequential
+from donkeycar.parts.keras import CustomWithHistory
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import DynamicTubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
@@ -29,6 +29,7 @@ from donkeycar.parts.imu import Mpu6050
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
 from donkeycar.parts.subwoofer import Subwoofer
+from donkeycar.parts.history import History
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -79,11 +80,30 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
                                 outputs=['run_pilot'])
 
     # Run the pilot if the mode is not user.
-    kl = CustomSequential()
+    kl = CustomWithHistory()
     if model_path:
         kl.load(model_path)
 
-    # TODO: reafactor this so that inputs array is not listed in here but in keras.py
+    mpu6050 = Mpu6050()
+    V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+
+    sonar = Sonar() # What if device changes?
+    V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
+
+    history_values = ['user/angle',
+                      'user/throttle',
+                      'acceleration/x',
+                      'acceleration/y',
+                      'acceleration/z',
+                      'sonar/left',
+                      'sonar/right',
+                      'sonar/center']
+
+    for hist in history_values:
+        hist_buffer = History(50)
+        V.add(hist_buffer, inputs=[hist], outputs=['history/%s' % hist])
+
+    # TODO: refactor this so that inputs array is not listed in here but in keras.py
     V.add(kl, inputs=['cam/image_array'],
               outputs=['pilot/angle', 'pilot/throttle'],
               run_condition='run_pilot')
@@ -107,8 +127,6 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
                   'pilot/angle', 'pilot/throttle'],
           outputs=['angle', 'raw_throttle'])
 
-    sonar = Sonar() # What if device changes?
-    V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
 
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
     steering = PWMSteering(controller=steering_controller,
@@ -129,10 +147,6 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
         V.add(throttle, inputs=['throttle'])
 
     V.add(steering, inputs=['angle'])
-
-
-    mpu6050 = Mpu6050()
-    V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
 
     subwoofer = Subwoofer()
     V.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
