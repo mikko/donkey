@@ -2,7 +2,7 @@
 Script to augment teaching data
 
 Usage:
-    augment.py [--path=<records_dir>] [--out=<target_dir>]
+    augment.py --path=<records_dir> --out=<target_dir>
 
 Options:
     -h --help        Show this screen.
