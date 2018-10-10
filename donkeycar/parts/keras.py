@@ -97,12 +97,12 @@ class CustomWithHistory(KerasPilot):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         angle_history = angle_history.reshape((1,) + angle_history.shape)
         throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
-        acceleration_x_history = acceleration_x_history.reshape((1,) + img_arr.shape)
-        acceleration_y_history = acceleration_y_history.reshape((1,) + img_arr.shape)
-        acceleration_z_history = acceleration_z_history.reshape((1,) + img_arr.shape)
-        sonar_left_history = sonar_left_history.reshape((1,) + img_arr.shape)
-        sonar_right_history = sonar_right_history.reshape((1,) + img_arr.shape)
-        sonar_center_history = sonar_center_history.reshape((1,) + img_arr.shape)
+        acceleration_x_history = acceleration_x_history.reshape((1,) + acceleration_x_history.shape)
+        acceleration_y_history = acceleration_y_history.reshape((1,) + acceleration_y_history.shape)
+        acceleration_z_history = acceleration_z_history.reshape((1,) + acceleration_z_history.shape)
+        sonar_left_history = sonar_left_history.reshape((1,) + sonar_left_history.shape)
+        sonar_right_history = sonar_right_history.reshape((1,) + sonar_right_history.shape)
+        sonar_center_history = sonar_center_history.reshape((1,) + sonar_center_history.shape)
 
         angle, throttle = self.model.predict([
             img_arr,
