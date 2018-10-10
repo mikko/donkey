@@ -13,6 +13,7 @@ from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
 
 import datetime
+import numpy as np
 
 class KerasPilot:
 
@@ -85,14 +86,14 @@ class CustomWithHistory(KerasPilot):
             sonar_center_history):
 
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        angle_history = angle_history.reshape((1,) + angle_history.shape)
-        throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
-        acceleration_x_history = acceleration_x_history.reshape((1,) + img_arr.shape)
-        acceleration_y_history = acceleration_y_history.reshape((1,) + img_arr.shape)
-        acceleration_z_history = acceleration_z_history.reshape((1,) + img_arr.shape)
-        sonar_left_history = sonar_left_history.reshape((1,) + img_arr.shape)
-        sonar_right_history = sonar_right_history.reshape((1,) + img_arr.shape)
-        sonar_center_history = sonar_center_history.reshape((1,) + img_arr.shape)
+        angle_history = np.array(angle_history).reshape((1,) + angle_history.shape)
+        throttle_history = np.array(throttle_history).reshape((1,) + throttle_history.shape)
+        acceleration_x_history = np.array(acceleration_x_history).reshape((1,) + img_arr.shape)
+        acceleration_y_history = np.array(acceleration_y_history).reshape((1,) + img_arr.shape)
+        acceleration_z_history = np.array(acceleration_z_history).reshape((1,) + img_arr.shape)
+        sonar_left_history = np.array(sonar_left_history).reshape((1,) + img_arr.shape)
+        sonar_right_history = np.array(sonar_right_history).reshape((1,) + img_arr.shape)
+        sonar_center_history = np.array(sonar_center_history).reshape((1,) + img_arr.shape)
 
         angle, throttle = self.model.predict([
             img_arr,
