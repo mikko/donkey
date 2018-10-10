@@ -104,9 +104,19 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
         V.add(hist_buffer, inputs=[hist], outputs=['history/%s' % hist])
 
     # TODO: refactor this so that inputs array is not listed in here but in keras.py
-    V.add(kl, inputs=['cam/image_array'],
-              outputs=['pilot/angle', 'pilot/throttle'],
-              run_condition='run_pilot')
+    V.add(kl,
+          inputs=[
+              'cam/image_array',
+              'history/user/angle',
+              'history/user/throttle',
+              'history/acceleration/x',
+              'history/acceleration/y',
+              'history/acceleration/z',
+              'history/sonar/left',
+              'history/sonar/right',
+              'history/sonar/center'],
+          outputs=['pilot/angle', 'pilot/throttle'],
+          run_condition='run_pilot')
 
     # Choose what inputs should change the car.
     def drive_mode(mode,
