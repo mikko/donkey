@@ -11,9 +11,8 @@ Options:
     --noebrake       Disable emergency brake
 
 """
-import os
-import logging
 from docopt import docopt
+<<<<<<< HEAD
 
 import donkeycar as dk
 from donkeycar.util.loader import create_instance
@@ -198,3 +197,14 @@ if __name__ == '__main__':
                 no_ebrake=args['--noebrake'],
                 module_name=args['--module'],
                 class_name=args['--class'])
+=======
+from garage import Garage
+
+if __name__ == '__main__':
+    args = docopt(__doc__)
+    model_path = model_path = args['--model']
+    use_joystick = args['--js']
+    no_ebrake = args['--noebrake']
+    vehicle = Garage.get_instance().create_vehicle(model_path, use_joystick, no_ebrake)
+    vehicle.start()
+>>>>>>> Support stopping vehicle from telegram bot

@@ -41,6 +41,19 @@ class Mpu6050:
     def shutdown(self):
         self.on = False
 
+class MockImu:
+    def __init__(self, addr=None, poll_delay=None):
+        pass
+
+    def update(self):
+        pass
+
+    def run_threaded(self):
+        pass
+
+    def run(self):
+        pass
+
 
 if __name__ == "__main__":
     iter = 0

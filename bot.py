@@ -1,7 +1,7 @@
 import logging
 import os
 
-from car import drive
+from car.garage import Garage
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
 def start(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text="and now maximum AIttack!")
+    send_message(bot, update.message.chat_id, "and now maximum AIttack!")
 
 def drive_command(bot, update):
     logging.info("Drive command issued")
@@ -28,20 +28,26 @@ def drive_command(bot, update):
 def model_selected(bot, update):
     query = update.callback_query
     model = query.data
-    bot.edit_message_text(text="{} is going for maximum attack!".format(model),
+    message = "{} is going for maximum attack!".format(model)
+    bot.edit_message_text(text=message,
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id)
-    #drive.start_drive(model_path="{}/{}".format(models_path, model), use_joystick=False)
+    send_message(bot, None, message)
+    vehicle = Garage.get_instance().create_vehicle(model_path="{}/{}".format(models_path, model), use_joystick=False)
+    vehicle.start()
 
 @run_async
 def record(bot, update):
     logging.info("Record command issued")
-    bot.send_message(chat_id=update.message.chat_id, text="Should now start recording manual driving")
-    drive.start_drive(use_joystick=True)
+    message = "Should now start recording manual driving"
+    send_message(bot, update.message.chat_id, message)
+    vehicle = Garage.get_instance().create_vehicle(use_joystick=True)
+    vehicle.start()
 
 def stop(bot, update):
     logging.info("Stop command issued")
-    bot.send_message(chat_id=update.message.chat_id, text="Should now stop")
+    send_message(bot, update.message.chat_id, "Should now stop")
+    Garage.get_instance().get_vehicle().stop()
 
 def start_bot(token):
     updater = Updater(token=token)
@@ -59,6 +65,13 @@ def start_bot(token):
     dispatcher.add_handler(record_handler)
 
     updater.start_polling()
+
+def send_message(bot, chat_id, message, group=True):
+    if chat_id is not None:
+        bot.send_message(chat_id=chat_id, text=message)
+    if "bot_group" in os.environ and group:
+        group = os.environ['bot_group']
+        bot.send_message(chat_id=group, text=message)
 
 if __name__ == '__main__':
     if (not "botkey" in os.environ):

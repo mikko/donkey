@@ -54,7 +54,7 @@ class Vehicle:
             entry['thread'] = t
         self.parts.append(entry)
 
-    def start(self, rate_hz=10, max_loop_count=None):
+    def start(self, rate_hz=20, max_loop_count=None):
         """
         Start vehicle's main drive loop.
 

@@ -26,6 +26,16 @@ class PCA9685:
     def run(self, pulse):
         self.set_pulse(pulse)
 
+class MockPCA9685:
+    def __init__(self, channel, frequency=60):
+        pass
+    
+    def set_pulse(self, pulse):
+        pass
+    
+    def run(self, pulse):
+        pass
+
 class PWMSteering:
     """
     Wrapper over a PWM motor cotnroller to convert angles to PWM pulses.
@@ -315,8 +325,23 @@ class Teensy:
 
         return ret
 
-class MockController(object):
-    def __init__(self):
+class MockServo(object):
+    def __init__(self, controller=None,
+                       left_pulse=None,
+                       right_pulse=None):
+        pass
+
+    def run(self, pulse):
+        pass
+        
+    def shutdown(self):
+        pass
+
+class MockEsc(object):
+    def __init__(self, controller=None,
+                       max_pulse=None,
+                       min_pulse=None,
+                       zero_pulse=None):
         pass
 
     def run(self, pulse):
