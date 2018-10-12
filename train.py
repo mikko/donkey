@@ -23,16 +23,16 @@ from donkeycar.parts.keras import CustomWithHistory
 
 # These used to live in config but not anymore
 BATCH_SIZE = 128
-TRAIN_TEST_SPLIT = 0.8
+TRAIN_TEST_SPLIT = 0.9
 
 
 def load_image(path):
     img = Image.open(path)
     return np.array(img)
 
-def get_generator(input_keys, output_keys, record_paths, meta, tub_path):
+def get_generator(input_keys, output_keys, record_paths, meta):
     while True:
-        for record_path in record_paths:
+        for (record_path, tub_path) in record_paths:
             with open(record_path, 'r') as record_file:
                 record = json.load(record_file)
                 inputs = [record[key] for key in input_keys]
@@ -49,12 +49,12 @@ def get_generator(input_keys, output_keys, record_paths, meta, tub_path):
                         inputs[i] = load_image("%s/%s" % (tub_path, imagePath))
                 yield inputs, outputs
 
-def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
+def get_batch_generator(input_keys, output_keys, records, meta):
     # Yield here a tuple (inputs, outputs)
     # both having arrays with batch_size length like:
     # 0: [input_1[batch_size],input_2[batch_size]]
     # 1: [output_1[batch_size],output_2[batch_size]]
-    record_gen = get_generator(input_keys, output_keys, records, meta, tub_path)
+    record_gen = get_generator(input_keys, output_keys, records, meta)
     while True:
         raw_batch = [next(record_gen) for _ in range(BATCH_SIZE)]
         inputs = [[] for _ in range(len(input_keys))]
@@ -69,30 +69,43 @@ def get_batch_generator(input_keys, output_keys, records, meta, tub_path):
         yield numpyInputs, numpyOutputs
 
 def get_meta(path):
-    with open('%s/meta.json' % path, 'r') as f:
-        meta = json.load(f)
-        meta_dict = {}
-        for i, key in enumerate(meta['inputs']):
-            meta_dict[key] = meta['types'][i]
-        return meta_dict
-            # TODO: filter out values not listed in inputs or outputs
+    try:
+        with open('%s/meta.json' % path, 'r') as f:
+            meta = json.load(f)
+            meta_dict = {}
+            for i, key in enumerate(meta['inputs']):
+                meta_dict[key] = meta['types'][i]
+            return meta_dict
+                # TODO: filter out values not listed in inputs or outputs
+    except:
+        return None
 
 
 def get_train_val_gen(inputs, outputs, tub_names):
     print('Loading data', tub_names)
     print('Inputs', inputs)
     print('Outputs', outputs)
-    tubs = glob.glob(str(tub_names))
-    print(tubs)
+    tubs = glob.glob(str('%s/**' % tub_names), recursive=True)
+    record_count = 0
+    all_train = []
+    all_validation = []
     for tub in tubs:
-        meta = get_meta(tub)
-        print(meta)
-        # TODO: Check if meta.json specs match with given inputs and outputs
-        record_files = glob.glob('%s/record*.json' % tub)
-        np.random.shuffle(record_files)
-        split = int(round(len(record_files) * TRAIN_TEST_SPLIT))
-        train_files, validation_files = record_files[:split], record_files[split:]
-    return get_batch_generator(inputs, outputs, train_files, meta, tub), get_batch_generator(inputs, outputs, validation_files, meta, tub), len(record_files)
+        # _original skipped by design
+        if ('_original' not in tub):
+            # TODO: should all tubs have the exact same meta file??? Probably yes.
+            meta = get_meta(tub)
+            if (meta != None):
+                first_meta = meta
+                # TODO: Check if meta.json specs match with given inputs and outputs
+                record_files = glob.glob('%s/record*.json' % tub)
+                files_and_paths = list(map(lambda rec: (rec, tub), record_files))
+                np.random.shuffle(files_and_paths)
+                split = int(round(len(files_and_paths) * TRAIN_TEST_SPLIT))
+                train_files, validation_files = files_and_paths[:split], files_and_paths[split:]
+                record_count += len(files_and_paths)
+                all_train.extend(train_files)
+                all_validation.extend(validation_files)
+    return get_batch_generator(inputs, outputs, all_train, first_meta), get_batch_generator(inputs, outputs, all_validation, first_meta), record_count
 
 
 def train(tub_names, new_model_path, base_model_path=None ):
@@ -128,11 +141,14 @@ def train(tub_names, new_model_path, base_model_path=None ):
 
     steps_per_epoch = total_train // BATCH_SIZE
 
+    print("Amount of training data available", total_train)
+
     kl.train(train_gen,
              val_gen,
              saved_model_path=new_model_path,
              steps=steps_per_epoch,
-             train_split=TRAIN_TEST_SPLIT)
+             train_split=TRAIN_TEST_SPLIT,
+             use_early_stop=False)
 
 
 if __name__ == '__main__':
