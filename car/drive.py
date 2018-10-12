@@ -97,7 +97,9 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
                       'acceleration/z',
                       'sonar/left',
                       'sonar/right',
-                      'sonar/center']
+                      'sonar/center',
+                      'pilot/angle',
+                      'pilot/throttle']
 
     for hist in history_values:
         hist_buffer = History(50)
@@ -107,8 +109,8 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     V.add(kl,
           inputs=[
               'cam/image_array',
-              'history/user/angle',
-              'history/user/throttle',
+              'history/pilot/angle',
+              'history/pilot/throttle',
               'history/acceleration/x',
               'history/acceleration/y',
               'history/acceleration/z',
