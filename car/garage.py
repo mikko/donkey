@@ -11,7 +11,7 @@ isRaspberryPi = platform.machine()[:3] == 'arm'
 #import parts
 from donkeycar.parts.transform import Lambda
 from donkeycar.parts.keras import CustomSequential
-from donkeycar.parts.datastore import TubGroup, TubWriter
+from donkeycar.parts.datastore import DynamicTubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.sonar import Sonar
@@ -117,6 +117,7 @@ class Garage:
         if model_path:
             kl.load(model_path)
 
+        # TODO: reafactor this so that inputs array is not listed in here but in keras.py
         self.vehicle.add(kl, inputs=['cam/image_array'],
                 outputs=['pilot/angle', 'pilot/throttle'],
                 run_condition='run_pilot')
@@ -178,9 +179,9 @@ class Garage:
         #th = TubHandler(path=self.configuration.DATA_PATH)
         #tub = th.new_tub_writer(inputs=inputs, types=types)
 
-        # single tub
-        tub = TubWriter(path=self.configuration.TUB_PATH, inputs=inputs, types=types)
-        self.vehicle.add(tub, inputs=inputs, run_condition='recording')
+        tub_inputs = ['recording'] + inputs
+        tub = DynamicTubWriter(path=self.configuration.TUB_PATH, inputs=inputs, types=types)
+        self.vehicle.add(tub, inputs=tub_inputs)
         
         self.lock.release()
         
