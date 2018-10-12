@@ -222,7 +222,8 @@ def augment(target, out = None):
     records = glob.glob('%s/record*.json' % target)
     records = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in records)
 
-    size, init_path = initialize_records(records, target, out, "original")
+    # Directories starting with underscore are skipped in training. Originals have no history augmented so have to be skipped
+    size, init_path = initialize_records(records, target, out, "_original")
 
     count = size
 
