@@ -83,4 +83,7 @@ if __name__ == '__main__':
         exit()
     models_path = os.environ['donkey_models_path']
     start_bot(token)
+    
+    vehicle = Garage.get_instance().create_vehicle(use_joystick=True)
+    vehicle.start()
 
