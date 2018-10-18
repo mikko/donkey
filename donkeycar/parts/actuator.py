@@ -5,6 +5,7 @@ are wrapped in a mixer class before being used in the drive loop.
 """
 
 import time
+import math
 import donkeycar as dk
 
 class PCA9685:
@@ -42,6 +43,9 @@ class PWMSteering:
 
 
     def run(self, angle):
+        if (math.isnan(angle)):
+            print('NaN angle fixed to 0')
+            angle = 0
         #map absolute angle to angle that vehicle can implement.
         pulse = dk.util.data.map_range(angle,
                                         self.LEFT_ANGLE, self.RIGHT_ANGLE,
@@ -78,6 +82,9 @@ class PWMThrottle:
 
 
     def run(self, throttle):
+        if (math.isnan(throttle)):
+            print('Throttle NaN fixed to 0')
+            throttle = 0
         if throttle > 0:
             pulse = dk.util.data.map_range(throttle,
                                                     0, self.MAX_THROTTLE,
