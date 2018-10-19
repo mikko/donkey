@@ -9,5 +9,6 @@ class History:
       self.history_buffer.append(0)
 
   def run(self, value):
-    self.history_buffer.append(value)
+    if (value != None):
+      self.history_buffer.append(value)
     return list(self.history_buffer)

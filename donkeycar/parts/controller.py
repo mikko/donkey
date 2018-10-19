@@ -276,12 +276,10 @@ class JoystickController(object):
 
             if axis == self.steering_axis:
                 self.angle = self.steering_scale * axis_val
-                print("angle", self.angle)
 
             if axis == self.throttle_axis:
                 #this value is often reversed, with positive value when pulling down
                 self.throttle = (self.throttle_scale * axis_val * self.max_throttle)
-                print("throttle", self.throttle)
                 self.on_throttle_changes()
 
             if button == 'a' and button_state == 1:
