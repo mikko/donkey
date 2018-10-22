@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] [--module=<module_name>] [--class=<class_name>] (--model=<model>) [--base_model=<base_model>] [--no_cache]
+    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_cache]
 
 Options:
     -h --help        Show this screen.
