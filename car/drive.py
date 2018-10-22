@@ -47,7 +47,7 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     V = dk.vehicle.Vehicle()
 
     clock = Timestamp()
-    V.add(clock, outputs='timestamp')
+    V.add(clock, outputs=['timestamp'])
 
     cam = PiCamera(resolution=cfg.CAMERA_RESOLUTION)
     V.add(cam, outputs=['cam/image_array'], threaded=True)
