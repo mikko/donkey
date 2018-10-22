@@ -23,6 +23,14 @@ class KerasPilot:
     def shutdown(self):
         pass
 
+    def drive_inputs(self):
+        inputs = self.inputs()
+        inputs = [input.replace('/user/', '/pilot/') for input in inputs]
+        return inputs
+
+    def inputs(self):
+        return ['cam/image_array']
+
     def train(self, train_gen, val_gen,
               saved_model_path, epochs=100, steps=100, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
@@ -73,6 +81,18 @@ class CustomWithHistory(KerasPilot):
             self.model = model
         else:
             self.model = custom_with_history(50)
+
+    def inputs(self):
+        return [
+              'cam/image_array',
+              'history/user/angle',
+              'history/user/throttle',
+              'history/acceleration/x',
+              'history/acceleration/y',
+              'history/acceleration/z',
+              'history/sonar/left',
+              'history/sonar/right',
+              'history/sonar/center']
 
     def run(self,
             img_arr,
@@ -198,6 +218,9 @@ class CustomSequential(KerasPilot):
         with open("latest_model.json", "w") as json_file:
             json_file.write(model_json)
             print('Saved model to JSON')
+
+    def inputs(self):
+        return ['cam/image_array']
 
     def run(self, img_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
