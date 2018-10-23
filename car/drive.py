@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    drive.py [--model=<model>] [--js] [--noebrake]
+    drive.py [--module=<module_name>] [--class=<class_name>] [--model=<model>] [--js] [--noebrake]
 
 Options:
     -h --help        Show this screen.
@@ -16,11 +16,11 @@ import logging
 from docopt import docopt
 
 import donkeycar as dk
+from donkeycar.util.loader import create_instance
 
 #import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.keras import CustomSequential
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import DynamicTubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
@@ -29,11 +29,17 @@ from donkeycar.parts.imu import Mpu6050
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
 from donkeycar.parts.subwoofer import Subwoofer
+from donkeycar.parts.history import History
+# pilot part is loaded dynamically
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
-                     level=logging.INFO)
+                    level=logging.INFO)
 
-def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
+DEFAULT_PILOT_MODULE = "donkeycar.parts.keras"
+DEFAULT_PILOT_CLASS = "CustomWithHistory"
+
+
+def _drive(cfg, config_path=None, model_path=None, use_joystick=False, no_ebrake=False, module_name=None, class_name=None):
     """
     Construct a working robotic vehicle from many parts.
     Each part runs as a job in the Vehicle loop, calling either
@@ -43,6 +49,11 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     Parts may have named outputs and inputs. The framework handles passing named outputs
     to parts requesting the same named input.
     """
+
+    if not module_name:
+        module_name = DEFAULT_PILOT_MODULE
+    if not class_name:
+        class_name = DEFAULT_PILOT_CLASS
 
     V = dk.vehicle.Vehicle()
 
@@ -79,14 +90,35 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
                                 outputs=['run_pilot'])
 
     # Run the pilot if the mode is not user.
-    kl = CustomSequential()
+    kl = create_instance(module_name, class_name)
     if model_path:
         kl.load(model_path)
 
-    # TODO: reafactor this so that inputs array is not listed in here but in keras.py
-    V.add(kl, inputs=['cam/image_array'],
-              outputs=['pilot/angle', 'pilot/throttle'],
-              run_condition='run_pilot')
+    mpu6050 = Mpu6050()
+    V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+
+    sonar = Sonar() # What if device changes?
+    V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
+
+    history_values = ['user/angle',
+                      'user/throttle',
+                      'acceleration/x',
+                      'acceleration/y',
+                      'acceleration/z',
+                      'sonar/left',
+                      'sonar/right',
+                      'sonar/center',
+                      'pilot/angle',
+                      'pilot/throttle']
+
+    for hist in history_values:
+        hist_buffer = History(50)
+        V.add(hist_buffer, inputs=[hist], outputs=['history/%s' % hist])
+
+    V.add(kl,
+          inputs=kl.drive_inputs(),
+          outputs=['pilot/angle', 'pilot/throttle'],
+          run_condition='run_pilot')
 
     # Choose what inputs should change the car.
     def drive_mode(mode,
@@ -107,8 +139,6 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
                   'pilot/angle', 'pilot/throttle'],
           outputs=['angle', 'raw_throttle'])
 
-    sonar = Sonar() # What if device changes?
-    V.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
 
     steering_controller = PCA9685(cfg.STEERING_CHANNEL)
     steering = PWMSteering(controller=steering_controller,
@@ -130,10 +160,6 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
 
     V.add(steering, inputs=['angle'])
 
-
-    mpu6050 = Mpu6050()
-    V.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
-
     subwoofer = Subwoofer()
     V.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
 
@@ -154,18 +180,21 @@ def _drive(cfg, model_path=None, use_joystick=False, no_ebrake=False):
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ,
             max_loop_count=cfg.MAX_LOOPS)
 
-def start_drive(model_path=None, use_joystick=True, no_ebrake=False):
+def start_drive(model_path=None, use_joystick=True, no_ebrake=False, module_name=None, class_name=None):
     if (not "donkey_config" in os.environ):
         logging.info('Environment variable donkey_config missing')
         return
     config_path = os.environ['donkey_config']
     logging.info('Config path: {}'.format(config_path))
     cfg = dk.load_config(config_path=config_path)
-    _drive(cfg, model_path, use_joystick, no_ebrake)
+    _drive(cfg, model_path, use_joystick, no_ebrake, module_name, class_name)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
 
     start_drive(model_path = args['--model'],
+                config_path = args['--config'],
                 use_joystick=args['--js'],
-                no_ebrake=args['--noebrake'])
+                no_ebrake=args['--noebrake'],
+                module_name=args['--module'],
+                class_name=args['--class'])
