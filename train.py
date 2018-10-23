@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>]  (--model=<model>) [--base_model=<base_model>] [--no_cache]
+    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_cache]
 
 Options:
     -h --help        Show this screen.
@@ -19,12 +19,14 @@ from docopt import docopt
 
 import donkeycar as dk
 # import parts
-from donkeycar.parts.keras import CustomWithHistory
+from donkeycar.util.loader import create_instance
 
 # These used to live in config but not anymore
 BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
 
+DEFAULT_MODULE = 'donkeycar.parts.keras'
+DEFAULT_CLASS = 'CustomWithHistory'
 
 def load_image(path):
     img = Image.open(path)
@@ -108,23 +110,21 @@ def get_train_val_gen(inputs, outputs, tub_names):
     return get_batch_generator(inputs, outputs, all_train, first_meta), get_batch_generator(inputs, outputs, all_validation, first_meta), record_count
 
 
-def train(tub_names, new_model_path, base_model_path=None ):
-    inputs = [
-        'cam/image_array',
-        'history/user/angle',
-        'history/user/throttle',
-        'history/acceleration/x',
-        'history/acceleration/y',
-        'history/acceleration/z',
-        'history/sonar/left',
-        'history/sonar/right',
-        'history/sonar/center',
-    ]
+def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None):
+
+    if not module_name:
+        module_name = DEFAULT_MODULE
+    if not class_name:
+        class_name = DEFAULT_CLASS
+
+    kl = create_instance(module_name, class_name)
+
+    inputs = kl.inputs()
+
     outputs = ['user/angle', 'user/throttle']
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    kl = CustomWithHistory()
     # Load base model if given
     if base_model_path is not None:
         base_model_path = os.path.expanduser(base_model_path)
@@ -154,10 +154,12 @@ def train(tub_names, new_model_path, base_model_path=None ):
 if __name__ == '__main__':
     args = docopt(__doc__)
     tub = args['--tub']
+    module_name = args['--module']
+    class_name = args['--class']
     new_model_path = args['--model']
     base_model_path = args['--base_model']
     cache = not args['--no_cache']
-    train(tub, new_model_path, base_model_path)
+    train(tub, new_model_path, base_model_path, module_name, class_name)
 
 
 
