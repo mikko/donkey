@@ -290,7 +290,7 @@ class JoystickController(object):
                 local: ai steering, ai throttle
                 """
                 if self.mode == 'user':
-                    self.mode = 'local_angle' # Disabled intentionally local angle
+                    self.mode = 'local_angle'
                 elif self.mode == 'local_angle':
                     self.mode = 'local'
                 else:

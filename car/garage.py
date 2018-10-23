@@ -9,14 +9,15 @@ import donkeycar as dk
 isRaspberryPi = platform.machine()[:3] == 'arm'
 
 #import parts
+from donkeycar.util.loader import create_instance
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.keras import CustomSequential
 from donkeycar.parts.datastore import DynamicTubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
 from donkeycar.parts.subwoofer import Subwoofer
+from donkeycar.parts.history import History
 
 if isRaspberryPi:
     from donkeycar.parts.camera import PiCamera as Camera
@@ -33,6 +34,9 @@ else:
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
+
+DEFAULT_PILOT_MODULE = "donkeycar.parts.keras"
+DEFAULT_PILOT_CLASS = "CustomWithHistory"
 
 class Garage:
     __instance = None
@@ -63,7 +67,7 @@ class Garage:
     def get_vehicle(self):
       return self.vehicle
 
-    def create_vehicle(self, model_path=None, use_joystick=True, no_ebrake=False):
+    def create_vehicle(self, model_path=None, use_joystick=True, no_ebrake=False, module_name=None, class_name=None):
         """
         Construct a working robotic vehicle from many parts.
         Each part runs as a job in the Vehicle loop, calling either
@@ -77,11 +81,16 @@ class Garage:
         if self.vehicle is not None:
           print("\n\nStopping existing vehicle\n\n")
           self.vehicle.stop()
+
+        if not module_name:
+            module_name = DEFAULT_PILOT_MODULE
+        if not class_name:
+            class_name = DEFAULT_PILOT_CLASS
         
         self.vehicle = dk.vehicle.Vehicle()
 
         clock = Timestamp()
-        self.vehicle.add(clock, outputs='timestamp')
+        self.vehicle.add(clock, outputs=['timestamp'])
 
         cam = Camera(resolution=self.configuration.CAMERA_RESOLUTION)
         self.vehicle.add(cam, outputs=['cam/image_array'], threaded=True)
@@ -113,36 +122,57 @@ class Garage:
                                     outputs=['run_pilot'])
 
         # Run the pilot if the mode is not user.
-        kl = CustomSequential()
+        kl = create_instance(module_name, class_name)
         if model_path:
             kl.load(model_path)
 
-        # TODO: reafactor this so that inputs array is not listed in here but in keras.py
-        self.vehicle.add(kl, inputs=['cam/image_array'],
-                outputs=['pilot/angle', 'pilot/throttle'],
-                run_condition='run_pilot')
+        ###
+        mpu6050 = Mpu6050()
+        self.vehicle.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+
+        sonar = Sonar() # What if device changes?
+        self.vehicle.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
+
+        history_values = ['user/angle',
+                          'user/throttle',
+                          'acceleration/x',
+                          'acceleration/y',
+                          'acceleration/z',
+                          'sonar/left',
+                          'sonar/right',
+                          'sonar/center',
+                          'pilot/angle',
+                          'pilot/throttle']
+
+        for hist in history_values:
+            # TODO: history length to constants
+            hist_buffer = History(50)
+            self.vehicle.add(hist_buffer, inputs=[hist], outputs=['history/%s' % hist])
+
+        self.vehicle.add(kl,
+                         inputs=kl.drive_inputs(),
+                         outputs=['pilot/angle', 'pilot/throttle'],
+                         run_condition='run_pilot')
 
         # Choose what inputs should change the car.
         def drive_mode(mode,
-                    user_angle, user_throttle,
-                    pilot_angle, pilot_throttle):
-            if mode == 'user':
-                return user_angle, user_throttle
+                      user_angle, user_throttle,
+                      pilot_angle, pilot_throttle):
+        
+        if mode == 'user':
+            return user_angle, user_throttle
+        elif mode == 'local_angle':
+            return pilot_angle, self.configuration.CRUISING_MODE_THROTTLE
+        else:
+            return pilot_angle, pilot_throttle
 
-            elif mode == 'local_angle':
-                return pilot_angle, user_throttle
-
-            else:
-                return pilot_angle, pilot_throttle
+        ###
 
         drive_mode_part = Lambda(drive_mode)
         self.vehicle.add(drive_mode_part,
           inputs=['user/mode', 'user/angle', 'user/throttle',
                   'pilot/angle', 'pilot/throttle'],
           outputs=['angle', 'raw_throttle'])
-
-        sonar = Sonar() # What if device changes?
-        self.vehicle.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
 
         steering_controller = Servoshield(self.configuration.STEERING_CHANNEL)
         steering = Servo(controller=steering_controller,
@@ -163,10 +193,6 @@ class Garage:
             self.vehicle.add(throttle, inputs=['throttle'])
 
         self.vehicle.add(steering, inputs=['angle'])
-
-
-        mpu6050 = IMU()
-        self.vehicle.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
 
         subwoofer = Subwoofer()
         self.vehicle.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
