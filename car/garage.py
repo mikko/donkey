@@ -126,9 +126,8 @@ class Garage:
         if model_path:
             kl.load(model_path)
 
-        ###
-        mpu6050 = Mpu6050()
-        self.vehicle.add(mpu6050, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+        imu = IMU()
+        self.vehicle.add(imu, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
 
         sonar = Sonar() # What if device changes?
         self.vehicle.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
