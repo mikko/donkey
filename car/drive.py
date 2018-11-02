@@ -29,6 +29,7 @@ from donkeycar.parts.imu import Mpu6050
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
 from donkeycar.parts.subwoofer import Subwoofer
+from donkeycar.parts.opticalspeed import OpticalSpeed
 from donkeycar.parts.history import History
 # pilot part is loaded dynamically
 
@@ -163,9 +164,28 @@ def _drive(cfg, config_path=None, model_path=None, use_joystick=False, no_ebrake
     subwoofer = Subwoofer()
     V.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
 
+    optical_speed = OpticalSpeed()
+    V.add(optical_speed, inputs=['cam/image_array'], outputs=['optic/speed'])
+
     # add tub to save data
-    inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact']
-    types = ['image_array', 'float', 'float',  'str', 'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float']
+    inputs = ['cam/image_array',
+              'user/angle', 'user/throttle',
+              'user/mode',
+              'timestamp',
+              'acceleration/x', 'acceleration/y', 'acceleration/z',
+              'gyro/x', 'gyro/y', 'gyro/z',
+              'temperature',
+              'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact',
+              'optic/speed']
+    types = ['image_array',
+             'float', 'float',
+             'str',
+             'str',
+             'float', 'float', 'float'
+             'float', 'float', 'float',
+             'float',
+             'float', 'float', 'float', 'float',
+             'float']
 
     #multiple tubs
     #th = TubHandler(path=cfg.DATA_PATH)
