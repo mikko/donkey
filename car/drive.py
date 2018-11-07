@@ -128,7 +128,7 @@ def _drive(cfg, config_path=None, model_path=None, use_joystick=False, no_ebrake
             return user_angle, user_throttle
 
         elif mode == 'local_angle':
-            return pilot_angle, 0.2 # Local angle redefined as constant cruise speed
+            return pilot_angle, 0.25 # Local angle redefined as constant cruise speed
 
         else:
             return pilot_angle, pilot_throttle
