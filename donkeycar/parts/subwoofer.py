@@ -31,7 +31,8 @@ class Subwoofer:
         "ai": pygame.mixer.Sound("%s/../../media/ai.ogg" % dir_path),
         "emergency": pygame.mixer.Sound("%s/../../media/emergency.ogg" % dir_path),
         "idle": pygame.mixer.Sound("%s/../../media/idle.ogg" % dir_path),
-        "recording": pygame.mixer.Sound("%s/../../media/recording.ogg" % dir_path)
+        "recording": pygame.mixer.Sound("%s/../../media/recording.ogg" % dir_path),
+        "cruising": pygame.mixer.Sound("%s/../../media/cruising.ogg" % dir_path)
       }
     except Exception as e:
       print("Error loading sound files")
@@ -55,6 +56,8 @@ class Subwoofer:
         # Start AI music if mode changed and is now "local"
         elif (prev_mode != mode and mode == "local"): # local mode means AI driven
             self.play("ai")
+        elif (prev_mode != mode and mode == "local_angle"): # local_angle mode means AI driven steering
+            self.play("cruising")
         # Start idle music if mode changed to something else and not recording
         elif ((prev_mode != mode or prev_recording != recording) and not recording):
             self.play("idle")
