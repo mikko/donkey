@@ -19,35 +19,20 @@ def drive_command(bot, update):
     keyboard = []
     for model in models:
         keyboard.append([InlineKeyboardButton(model, callback_data=model)])
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Choose your Markku:', reply_markup=reply_markup)
-
 
 @run_async
 def model_selected(bot, update):
     query = update.callback_query
     model = query.data
+
     message = "{} is going for maximum attack!".format(model)
     bot.edit_message_text(text=message,
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id)
     send_message(bot, None, message)
-    vehicle = Garage.get_instance().create_vehicle(model_path="{}/{}".format(models_path, model), use_joystick=False)
-    vehicle.start()
-
-@run_async
-def record(bot, update):
-    logging.info("Record command issued")
-    message = "Should now start recording manual driving"
-    send_message(bot, update.message.chat_id, message)
-    vehicle = Garage.get_instance().create_vehicle(use_joystick=True)
-    vehicle.start()
-
-def stop(bot, update):
-    logging.info("Stop command issued")
-    send_message(bot, update.message.chat_id, "Should now stop")
-    Garage.get_instance().get_vehicle().stop()
+    Garage.get_instance().get_vehicle().change_model(models_path, model)
 
 def start_bot(token):
     updater = Updater(token=token)
@@ -59,10 +44,6 @@ def start_bot(token):
     dispatcher.add_handler(drive_handler)
     drive_model_handler = CallbackQueryHandler(model_selected)
     dispatcher.add_handler(drive_model_handler)
-    stop_handler = CommandHandler('stop', stop)
-    dispatcher.add_handler(stop_handler)
-    record_handler = CommandHandler('record', record)
-    dispatcher.add_handler(record_handler)
 
     updater.start_polling()
 
