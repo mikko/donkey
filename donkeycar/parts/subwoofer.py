@@ -1,5 +1,9 @@
 import os
 import pygame
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                     level=logging.INFO)
 
 os.environ["DISPLAY"] = "0"
 os.environ["home"] = "/home/pi"
@@ -68,7 +72,9 @@ class Subwoofer:
   def shutdown(self):
     # indicate that the thread should be stopped
     self.on = False
-    print('stopping subwoofer')
+    logging.info('stopping subwoofer')
+    pygame.mixer.quit()
+
 
 if __name__ == "__main__":
     import time
