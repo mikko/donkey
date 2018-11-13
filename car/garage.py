@@ -157,12 +157,12 @@ class Garage:
         def drive_mode(mode,
                       user_angle, user_throttle,
                       pilot_angle, pilot_throttle):
-        if mode == 'user':
-            return user_angle, user_throttle
-        elif mode == 'local_angle':
-            return pilot_angle, self.configuration.CRUISING_MODE_THROTTLE
-        else:
-            return pilot_angle, pilot_throttle
+            if mode == 'user':
+                return user_angle, user_throttle
+            elif mode == 'local_angle':
+                return pilot_angle, self.configuration.CRUISING_MODE_THROTTLE
+            else:
+                return pilot_angle, pilot_throttle
 
         drive_mode_part = Lambda(drive_mode)
         self.vehicle.add(drive_mode_part,
