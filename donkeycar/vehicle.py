@@ -153,7 +153,7 @@ class Vehicle:
         class_name = model.split('-', 1)[0]
         pilot = self._get_pilot()
         if pilot is not None and pilot['part'].__class__.__name__ is class_name:
-            pilot['part'].load_model(f'{model_path}/{model}')
+            pilot['part'].load(f'{model_path}/{model}')
         else:
             if pilot in self.parts:
                 self.parts.remove(pilot)
