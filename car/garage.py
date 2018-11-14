@@ -121,6 +121,11 @@ class Garage:
         self.vehicle.add(pilot_condition_part, inputs=['user/mode'],
                                     outputs=['run_pilot'])
 
+        if model_path is None and self.configuration.DEFAULT_MODEL:
+            model_name = self.configuration.DEFAULT_MODEL
+            class_name = model_name.split('-', 1)[0]
+            model_path = "{}/{}".format(self.configuration.MODELS_PATH, model_name)
+
         # Run the pilot if the mode is not user.
         kl = create_instance(module_name, class_name)
         if model_path:

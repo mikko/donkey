@@ -20,6 +20,9 @@ CAR_PATH = PACKAGE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(CAR_PATH, './data')
 MODELS_PATH = os.path.join(CAR_PATH, './models')
 
+#DEFAULT MODEL
+DEFAULT_MODEL = "CustomSequential-205_teipattu_2_11"
+
 #CAMERA
 CAMERA_RESOLUTION = (180, 240) #(height, width)
 
@@ -44,7 +47,7 @@ USE_JOYSTICK_AS_DEFAULT = False
 JOYSTICK_MAX_THROTTLE = 0.5
 JOYSTICK_STEERING_SCALE = 1.0
 AUTO_RECORD_ON_THROTTLE = False
-CRUISING_MODE_THROTTLE = 0.30
+CRUISING_MODE_THROTTLE = 0.25
 
 
 TUB_PATH = os.path.join(CAR_PATH, 'tub') # if using a single tub
