@@ -14,7 +14,6 @@ from donkeycar.util.loader import create_instance
 
 logger = get_logger(__name__)
 
-
 class Vehicle:
     def __init__(self, mem=None):
         if not mem:
@@ -153,12 +152,12 @@ class Vehicle:
         class_name = model.split('-', 1)[0]
         pilot = self._get_pilot()
         if pilot is not None and pilot['part'].__class__.__name__ is class_name:
-            pilot['part'].load('{}/{}'.format(model_path, model))
+            pilot['part'].load('{}{}'.format(model_path, model))
         else:
             if pilot in self.parts:
                 self.parts.remove(pilot)
             pilot = create_instance("donkeycar.parts.keras", class_name)
-            pilot.load('{}/{}'.format(model_path, model))
+            pilot.load('{}{}'.format(model_path, model))
             self.add(pilot,
                 inputs=pilot.drive_inputs(),
                 outputs=['pilot/angle', 'pilot/throttle'],
