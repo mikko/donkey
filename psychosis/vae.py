@@ -11,7 +11,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping, TensorBoard
 
 import argparse
 
-INPUT_DIM = (64,64,3)
+INPUT_DIM = (100,240,3)
 
 CONV_FILTERS = [32,64,64,128]
 CONV_KERNEL_SIZES = [4,4,4,4]
@@ -89,6 +89,9 @@ class VAE():
         vae_d3_decoder = vae_d3(vae_d2_decoder)
         vae_d4_decoder = vae_d4(vae_d3_decoder)
 
+        # vae_reshaped_decoder = Reshape([-1, 100, 240, 3])(vae_d4_decoder)
+
+
         #### MODELS
 
         vae = Model(vae_x, vae_d4_model)
@@ -159,66 +162,9 @@ class VAE():
 
 # Own data load stuff
 
-
-def load_image(path):
-    img = Image.open(path) #.convert('L')
-    arr = np.array(img, np.float32) / 255
-    # arr = np.array(img.getdata(), np.float32)
-    # arr = arr.reshape(img.size[1], img.size[0], 3)
-    if (len(arr) == 120):
-        print('width 120 wtf')
-        raise Error()
-    return arr
-
-
-def data_iterator(batch_size):
-
-    # HERE LOAD IMAGES AS NP ARRAYS
-    # ORIGINALS 96x96
-
-    # TUB[]
-    data_files = glob.glob('./data/*.jpg')
-    data = np.array(data_files)
-    np.random.shuffle(data)
-    np.random.shuffle(data)
-    N = data.shape[0]
-
-    while True:
-        # img[]
-        start = np.random.randint(0, N-batch_size)
-        batch_files = data[start:start+batch_size]
-        images = []
-        for image_file in batch_files:
-            try:
-                img = load_image(image_file)
-                images.append(img)
-            except:
-                continue
-        yield images
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def load_image(path):
     img = Image.open(path)
-    # return np.array(["kakkapylly"]) # np.array(img)
-    img = np.zeros([64,64,3],dtype=np.uint8)
-    img.fill(255)
-    return img
+    return np.array(img)
 
 def get_generator(record_paths):
     while True:
@@ -247,25 +193,6 @@ def get_train_val_gen():
         all_train.extend(train_files)
         all_validation.extend(validation_files)
     return get_batch_generator(all_train), get_batch_generator(all_validation), record_count
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # train_vae.py
 
