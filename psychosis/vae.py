@@ -3,32 +3,26 @@
 import numpy as np
 from PIL import Image
 import glob, random, os
+import cv2
 
+import tensorflow as tf
 from tensorflow.python.keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose, Lambda, Reshape
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.callbacks import EarlyStopping, TensorBoard
+from tensorflow.python.keras.callbacks import EarlyStopping, TensorBoard, Callback, ModelCheckpoint
 
 import argparse
 
-INPUT_DIM = (100,240,3)
 
-CONV_FILTERS = [32,64,64,128]
-CONV_KERNEL_SIZES = [4,4,4,4]
-CONV_STRIDES = [2,2,2,2]
-CONV_ACTIVATIONS = ['relu','relu','relu','relu']
+
+INPUT_DIM = (100,240,3)
 
 DENSE_SIZE = 1024
 
-CONV_T_FILTERS = [64,64,32,3]
-CONV_T_KERNEL_SIZES = [5,5,6,6]
-CONV_T_STRIDES = [2,2,2,2]
-CONV_T_ACTIVATIONS = ['relu','relu','relu','sigmoid']
-
 Z_DIM = 32
 
-EPOCHS = 1
-BATCH_SIZE = 32
+EPOCHS = 10000
+BATCH_SIZE = 128
 
 TRAIN_SPLIT=0.9
 
@@ -36,6 +30,50 @@ def sampling(args):
     z_mean, z_log_var = args
     epsilon = K.random_normal(shape=(K.shape(z_mean)[0], Z_DIM), mean=0.,stddev=1.)
     return z_mean + K.exp(z_log_var / 2) * epsilon
+
+class ImageCallback(Callback):
+    def __init__(self, model, generator):
+        self.generator = generator
+        self.model = model
+
+    def tf_summary_image(self, tensor):
+        import io
+        from PIL import Image
+
+        tensor = tensor * 255
+        tensor = tensor.astype(np.uint8)
+        tensor = (tensor[0])
+
+        height, width, channel = tensor.shape
+        image = Image.fromarray(tensor)
+        #img = cv2.cvtColor(tensor, cv2.COLOR_BGR2RGB)
+        #cv2.imshow('autodecoded', img)
+        #cv2.waitKey(10)
+        output = io.BytesIO()
+        image.save(output, format='PNG')
+        image_string = output.getvalue()
+        output.close()
+        return tf.Summary.Image(height=height,
+                                width=width,
+                                colorspace=channel,
+                                encoded_image_string=image_string)
+
+    def on_epoch_end(self, epoch, logs={}):
+        batch = next(self.generator)
+        #img = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+        #cv2.imshow('original', img)
+        #cv2.waitKey(10)
+
+        test_img = batch[0][0]
+        predicted = self.model.predict(np.array([test_img]))
+        image = self.tf_summary_image(predicted)
+        summary = tf.Summary(value=[tf.Summary.Value(tag='Predicted image', image=image)])
+
+        writer = tf.summary.FileWriter('./tensorboard_logs/vae')
+        writer.add_summary(summary, epoch)
+        writer.close()
+
+        return
 
 class VAE():
     def __init__(self):
@@ -50,10 +88,10 @@ class VAE():
 
     def _build(self):
         vae_x = Input(shape=INPUT_DIM, name='img_in')
-        vae_c1 = Conv2D(filters = CONV_FILTERS[0], kernel_size = CONV_KERNEL_SIZES[0], strides = CONV_STRIDES[0], activation=CONV_ACTIVATIONS[0])(vae_x)
-        vae_c2 = Conv2D(filters = CONV_FILTERS[1], kernel_size = CONV_KERNEL_SIZES[1], strides = CONV_STRIDES[1], activation=CONV_ACTIVATIONS[0])(vae_c1)
-        vae_c3= Conv2D(filters = CONV_FILTERS[2], kernel_size = CONV_KERNEL_SIZES[2], strides = CONV_STRIDES[2], activation=CONV_ACTIVATIONS[0])(vae_c2)
-        vae_c4= Conv2D(filters = CONV_FILTERS[3], kernel_size = CONV_KERNEL_SIZES[3], strides = CONV_STRIDES[3], activation=CONV_ACTIVATIONS[0])(vae_c3)
+        vae_c1 = Conv2D(name='conv_enc_1', filters = 32, kernel_size = 4, strides = 2, activation='relu')(vae_x)
+        vae_c2 = Conv2D(name='conv_enc_2', filters = 64, kernel_size = 4, strides = 2, activation='relu')(vae_c1)
+        vae_c3= Conv2D(name='conv_enc_3', filters = 64, kernel_size = 4, strides = 2, activation='relu')(vae_c2)
+        vae_c4= Conv2D(name='conv_enc_4', filters = 128, kernel_size = 4, strides = 2, activation='relu')(vae_c3)
 
         vae_z_in = Flatten()(vae_c4)
 
@@ -70,14 +108,29 @@ class VAE():
         vae_z_out = Reshape((1,1,DENSE_SIZE))
         vae_z_out_model = vae_z_out(vae_dense_model)
 
-        vae_d1 = Conv2DTranspose(filters = CONV_T_FILTERS[0], kernel_size = CONV_T_KERNEL_SIZES[0] , strides = CONV_T_STRIDES[0], activation=CONV_T_ACTIVATIONS[0])
+        # 1,1,1024
+
+        vae_d1 = Conv2DTranspose(name='deconv_decode_1', filters = 64, kernel_size = (5,6) , strides = 2, activation='relu')
         vae_d1_model = vae_d1(vae_z_out_model)
-        vae_d2 = Conv2DTranspose(filters = CONV_T_FILTERS[1], kernel_size = CONV_T_KERNEL_SIZES[1] , strides = CONV_T_STRIDES[1], activation=CONV_T_ACTIVATIONS[1])
+        # 5,5,64
+        vae_d2 = Conv2DTranspose(name='deconv_decode_2', filters = 64, kernel_size = 4 , strides = 3, activation='relu')
         vae_d2_model = vae_d2(vae_d1_model)
-        vae_d3 = Conv2DTranspose(filters = CONV_T_FILTERS[2], kernel_size = CONV_T_KERNEL_SIZES[2] , strides = CONV_T_STRIDES[2], activation=CONV_T_ACTIVATIONS[2])
+        # 13,13,64
+        vae_d3 = Conv2DTranspose(name='deconv_decode_3', filters = 32, kernel_size = (4,5) , strides = 3, activation='relu')
         vae_d3_model = vae_d3(vae_d2_model)
-        vae_d4 = Conv2DTranspose(filters = CONV_T_FILTERS[3], kernel_size = CONV_T_KERNEL_SIZES[3] , strides = CONV_T_STRIDES[3], activation=CONV_T_ACTIVATIONS[3])
+        # 30, 30, 32
+        vae_d4 = Conv2DTranspose(name='deconv_decode_4', filters = 3, kernel_size = (4,4) , strides = 2, activation='relu')
         vae_d4_model = vae_d4(vae_d3_model)
+        # 64,64,3
+
+        vae_d5 = Conv2DTranspose(name='deconv_decode_5', filters = 3, kernel_size = (1,2) , strides = (1,2), activation='sigmoid')
+
+
+
+        vae_d5_model = vae_d5(vae_d4_model)
+
+
+        # desperate_dense = Dense(18)(vae_d4_model)
 
         #### DECODER ONLY
 
@@ -94,7 +147,7 @@ class VAE():
 
         #### MODELS
 
-        vae = Model(vae_x, vae_d4_model)
+        vae = Model(vae_x, vae_d5_model)
         vae_encoder = Model(vae_x, vae_z)
         vae_decoder = Model(vae_z_input, vae_d4_decoder)
 
@@ -124,10 +177,17 @@ class VAE():
     def train(self, train_gen, val_gen, steps, train_split):
 
         earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=5, verbose=1, mode='auto')
-        tbCallback = TensorBoard(log_dir=('./tensorboard_logs/vae'), histogram_freq=0, write_graph=True,
+        tbCallback = TensorBoard(log_dir=('./tensorboard_logs/vae'), histogram_freq=1, write_graph=True,
                     write_images=True)
+        imgCallback = ImageCallback(self.model, val_gen)
 
-        callbacks_list = [earlystop, tbCallback]
+        save_best = ModelCheckpoint('./vae_model_best',
+                            monitor='val_loss',
+                            verbose=True,
+                            save_best_only=True,
+                            mode='min')
+
+        callbacks_list = [tbCallback, imgCallback, save_best] # earlystop
 
         print('STEPS', steps)
 
@@ -139,7 +199,7 @@ class VAE():
             callbacks=callbacks_list,
             validation_steps=steps * (1.0 - train_split) / train_split)
 
-        self.model.save_weights('./vae/weights.h5')
+        self.model.save_weights('./vae_weights.h5')
 
     def save_weights(self, filepath):
         self.model.save_weights(filepath)
@@ -163,8 +223,9 @@ class VAE():
 # Own data load stuff
 
 def load_image(path):
-    img = Image.open(path)
-    return np.array(img)
+    img = Image.open(path) #.convert('L')
+    arr = np.array(img, np.float32) / 255
+    return arr
 
 def get_generator(record_paths):
     while True:
@@ -192,6 +253,11 @@ def get_train_val_gen():
         record_count += len(files_and_paths)
         all_train.extend(train_files)
         all_validation.extend(validation_files)
+
+
+    # record_count = 8
+
+
     return get_batch_generator(all_train), get_batch_generator(all_validation), record_count
 
 # train_vae.py
@@ -205,7 +271,9 @@ def main(args):
 
     vae = VAE()
 
-    print('Not using existing model ever')
+    vae.set_weights('./vae_model_best')
+
+    #print('Not using existing model ever')
     #if not new_model:
     #    try:
     #        vae.set_weights('./vae/weights.h5')
