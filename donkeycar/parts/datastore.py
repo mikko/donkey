@@ -20,6 +20,8 @@ from PIL import Image
 from donkeycar import util
 from ..log import get_logger
 
+import multiprocessing
+
 logger = get_logger(__name__)
 
 
@@ -491,8 +493,15 @@ class DynamicTubWriter():
         print("New tub created", new_path)
         self.writer = TubWriter(path=new_path, inputs=self.inputs, types=self.types)
 
+    def archive_and_upload(self, writer):
+        zipfile = util.s3.archive_tub(writer.path)
+        util.s3.upload(zipfile)
+
     def finalize_tub(self, writer):
-        print("Should now zip and send the tub somwhere")
+        print("Zip and send to s3")
+        new_process = multiprocessing.Process(target=archive_and_upload, args=(writer))
+        new_process.start()
+        new_process.join()
 
     def run(self, *args):
         curr_recording = args[0]
