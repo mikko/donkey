@@ -499,7 +499,7 @@ class DynamicTubWriter():
 
     def finalize_tub(self, writer):
         print("Zip and send to s3")
-        new_process = multiprocessing.Process(target=archive_and_upload, args=(writer))
+        new_process = multiprocessing.Process(target=archive_and_upload, args=(writer,))
         new_process.start()
         new_process.join()
 
