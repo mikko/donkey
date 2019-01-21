@@ -27,7 +27,7 @@ BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
-DEFAULT_CLASS = 'CustomWithHistory'
+DEFAULT_CLASS = 'CustomSequential'
 
 def load_image(path):
     img = Image.open(path)
@@ -143,11 +143,11 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     steps_per_epoch = total_train // BATCH_SIZE
 
     print("Amount of training data available", total_train)
-    time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+    time = datetime.utcnow().strftime('%Y-%m-%d_%H:%M')
 
     kl.train(train_gen,
              val_gen,
-             saved_model_path=f'{class_name}-{time}-{new_model_path}',
+             saved_model_path=f'{new_model_path}-{class_name}-{time}',
              steps=steps_per_epoch,
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
