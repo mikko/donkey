@@ -10,9 +10,9 @@ import time
 from threading import Thread
 from .memory import Memory
 from .log import get_logger
+from donkeycar.util.loader import create_instance
 
 logger = get_logger(__name__)
-
 
 class Vehicle:
     def __init__(self, mem=None):
@@ -54,7 +54,7 @@ class Vehicle:
             entry['thread'] = t
         self.parts.append(entry)
 
-    def start(self, rate_hz=10, max_loop_count=None):
+    def start(self, rate_hz=20, max_loop_count=None):
         """
         Start vehicle's main drive loop.
 
@@ -139,3 +139,26 @@ class Vehicle:
                 entry['part'].shutdown()
             except Exception as e:
                 logger.debug(e)
+
+    def _get_pilot(self):
+        for entry in self.parts:
+            try:
+                if entry['part'].__subclasses__().__name__ is "KerasPilot":
+                    return entry
+            except:
+                pass
+
+    def change_model(self, model_path, model):
+        class_name = model.split('-', 1)[0]
+        pilot = self._get_pilot()
+        if pilot is not None and pilot['part'].__class__.__name__ is class_name:
+            pilot['part'].load('{}{}'.format(model_path, model))
+        else:
+            if pilot in self.parts:
+                self.parts.remove(pilot)
+            pilot = create_instance("donkeycar.parts.keras", class_name)
+            pilot.load('{}{}'.format(model_path, model))
+            self.add(pilot,
+                inputs=pilot.drive_inputs(),
+                outputs=['pilot/angle', 'pilot/throttle'],
+                run_condition='run_pilot')
