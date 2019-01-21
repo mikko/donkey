@@ -9,10 +9,15 @@ dist/*
 .git.bfg-report
 .DS_Store
 lag_log.csv
+.vscode/*
 
 .cache
 site/*
 build
+
+latest_model.json
+tensorboard_logs/*
+car/models/*
 
 #IDE
 .idea
