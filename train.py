@@ -21,9 +21,10 @@ from datetime import datetime
 import donkeycar as dk
 # import parts
 from donkeycar.util.loader import create_instance
+from donkeycar.util.data import linear_bin
 
 # These used to live in config but not anymore
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
@@ -41,15 +42,15 @@ def get_generator(input_keys, output_keys, record_paths, meta):
                 inputs = [record[key] for key in input_keys]
                 outputs = [record[key] for key in output_keys]
                 input_types = [meta[key] for key in input_keys]
-                # output_types = [meta[key] for key in output_keys]
+                output_types = [meta[key] for key in output_keys]
                 for i in range(len(inputs)):
                     type = input_types[i]
                     if (type == 'image_array'):
-                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
-                    elif (type == 'custom/prev_image'):
-                        # Currently previous images are in array, but there is only one
-                        imagePath = inputs[i][0]
-                        inputs[i] = load_image("%s/%s" % (tub_path, imagePath))
+                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i])) / 255
+                for i in range(len(outputs)):
+                    key = output_keys[i]
+                    if (key == 'user/angle' or key == 'user/throttle'):
+                        outputs[i] = linear_bin(outputs[i])
                 yield inputs, outputs
 
 def get_batch_generator(input_keys, output_keys, records, meta):
@@ -139,7 +140,6 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
         # tub_names = os.path.join(cfg.DATA_PATH, '*')
 
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names)
-
     steps_per_epoch = total_train // BATCH_SIZE
 
     print("Amount of training data available", total_train)

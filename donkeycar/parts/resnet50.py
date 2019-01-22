@@ -2,7 +2,7 @@
 
 resnet50.py
 
-Implements resnet-50 like architecture with slight tunings for donkey car
+Implements Deep residual architecture with slight tunings for donkey car
 Highly inspired by original Resnet paper: https://arxiv.org/abs/1512.03385
 
 """
@@ -71,7 +71,7 @@ class KerasPilot:
             validation_steps=steps * (1.0 - train_split) / train_split)
         return hist
 
-def id_block(X, f, filters):
+def id_block(x, f, filters):
     """
     Resnet Identity block
     """
@@ -79,110 +79,127 @@ def id_block(X, f, filters):
     F1, F2, F3 = filters
 
     # Shortcut component
-    X_sc = X 
+    x_sc = x 
 
     # First component
-    X = Conv2D(F1, (1, 1), strides = (1, 1), padding = "valid")(X)
-    X = BatchNormalization(axis = 3)(X)
-    X = Activation("relu")(X)
+    x = Conv2D(F1, (1, 1), 
+            kernel_initializer='he_normal',
+            strides = (1, 1), 
+            padding = 'valid')(x)
+    x = BatchNormalization(axis = 3)(x)
+    x = Activation("relu")(x)
 
     # Second component
-    X = Conv2D(F2, (f, f), strides = (1, 1), padding = "same")(X)
-    BatchNormalization(axis = 3)(X)
-    X = Activation("relu")(X)
+    x = Conv2D(F2, (f, f), 
+            kernel_initializer='he_normal',
+            strides = (1, 1), 
+            padding = "same")(x)
+    BatchNormalization(axis = 3)(x)
+    x = Activation("relu")(x)
 
     # Third component
-    X = Conv2D(F3, (1, 1), strides = (1, 1), padding = "valid")(X)
-    X = BatchNormalization(axis = 3)(X)
+    x = Conv2D(F3, (1, 1), 
+            kernel_initializer='he_normal',
+            strides = (1, 1),
+            padding = "valid")(x)
+    x = BatchNormalization(axis = 3)(x)
 
     # SUM component
-    X = Add()([X, X_sc])
-    X = Activation("relu")(X)
+    x = Add()([x, x_sc])
+    x = Activation("relu")(x)
 
-    return X
+    return x
 
-def conv_block(X, f, filters, s):
+def conv_block(x, f, filters, s=(2,2)):
     """
     Resnet convolutional block
     """
     F1, F2, F3 = filters
 
     # Shortcut component
-    X_sc = X
-    X_sc = Conv2D(F3, (1, 1), strides = (s, s), padding = "valid")(X_sc)
-    X_sc = BatchNormalization(axis = 3)(X_sc)
+    x_sc = x
+    x_sc = Conv2D(F3, (1, 1), 
+            kernel_initializer='he_normal',
+            strides =(s,s), 
+            padding="valid")(x_sc)
+    x_sc = BatchNormalization(axis = 3)(x_sc)
 
     # First component
-    X = Conv2D(F1, (1, 1), strides = (s, s))(X)
-    X = BatchNormalization(axis = 3)(X)
-    X = Activation("relu")(X)
+    x = Conv2D(F1, (1, 1), 
+            kernel_initializer='he_normal',
+            strides =(s,s))(x)
+    x = BatchNormalization(axis=3)(x)
+    x = Activation("relu")(x)
 
     # Second component
-    X = Conv2D(F2, (f, f), strides = (1, 1), padding = "same")(X)
-    X = BatchNormalization(axis = 3)(X)
-    X = Activation("relu")(X)
+    x = Conv2D(F2, (f, f), 
+            kernel_initializer='he_normal',
+            strides=(1,1), 
+            padding="same")(x)
+    x = BatchNormalization(axis = 3)(x)
+    x = Activation("relu")(x)
 
     # Third component
-    X = Conv2D(F3, (1, 1), strides = (1, 1), padding = "valid")(X)
-    X = BatchNormalization(axis = 3)(X)
+    x = Conv2D(F3, (1, 1), 
+            kernel_initializer='he_normal',
+            strides=(1,1), 
+            padding="valid")(x)
+    x = BatchNormalization(axis = 3)(x)
 
-    # Third component
-    X = Conv2D(F3, (1, 1), strides = (1, 1), padding = "valid")(X)
-    X = BatchNormalization(axis = 3)(X)
+    
 
     # SUM component
-    X = Add()([X, X_sc])
-    X = Activation("relu")(X)
+    x = Add()([x, x_sc])
+    x = Activation("relu")(x)
 
-    return X
+    return x
 
 def ResNet50(input_shape = (100, 240, 3)):
-    X_input = Input(input_shape)
+    x_input = Input(input_shape)
 
-    X = ZeroPadding2D((3, 3))(X_input)
+    x = ZeroPadding2D((3, 3))(x_input)
 
     # Stage 1
-    X = Conv2D(64, (7, 7), strides = (2, 2))(X)
-    X = BatchNormalization(axis = 3)(X)
-    X = Activation("relu")(X)
-    X = MaxPooling2D((3, 3), strides = (2, 2))(X)
+    x = Conv2D(64, (7, 7), 
+            kernel_initializer='he_normal',
+            strides=(2,2),
+            padding='valid')(x)
+    x = BatchNormalization(axis = 3)(x)
+    x = Activation("relu")(x)
+    x = ZeroPadding2D(padding=(1, 1))(x)
+    x = MaxPooling2D((3, 3), strides = (2, 2))(x)
 
     # Stage 2
-    X = conv_block(X, f = 3, filters = [64, 64, 256], s = 1)
-    X = id_block(X, 3, [64, 64, 256])
-    X = id_block(X, 3, [64, 64, 256])
+    x = conv_block(x, f = 3, filters = [64, 64, 256], s = 1)
+    x = id_block(x, 3, [64, 64, 256])
+    x = id_block(x, 3, [64, 64, 256])
 
     # Stage 3
-    X = conv_block(X, f = 3, filters = [128, 128, 512], s = 2)
-    X = id_block(X, 3, [128, 128, 512])
-    X = id_block(X, 3, [128, 128, 512])
-    X = id_block(X, 3, [128, 128, 512])
+    x = conv_block(x, f = 3, filters = [128, 128, 512], s = 2)
+    x = id_block(x, 3, [128, 128, 512])
+    x = id_block(x, 3, [128, 128, 512])
+    x = id_block(x, 3, [128, 128, 512])
 
     # Stage 4
-    X = conv_block(X, f = 3, filters = [256, 256, 1024], s = 2)
-    X = id_block(X, 3, [256, 256, 1024])
-    X = id_block(X, 3, [256, 256, 1024])
-    X = id_block(X, 3, [256, 256, 1024])
-    X = id_block(X, 3, [256, 256, 1024])
-    X = id_block(X, 3, [256, 256, 1024])
+    x = conv_block(x, f = 3, filters = [256, 256, 1024], s = 2)
+    x = id_block(x, 3, [256, 256, 1024])
+    x = id_block(x, 3, [256, 256, 1024])
+    x = id_block(x, 3, [256, 256, 1024])
+    x = id_block(x, 3, [256, 256, 1024])
+    x = id_block(x, 3, [256, 256, 1024])
 
     # Stage 5
-    X = conv_block(X, f = 3, filters = [512, 512, 2048], s = 2)
-    X = id_block(X, 3, [512, 512, 2048])
-    X = id_block(X, 3, [512, 512, 2048])
+    x = conv_block(x, f = 3, filters = [512, 512, 2048], s = 2)
+    x = id_block(x, 3, [512, 512, 2048])
+    x = id_block(x, 3, [512, 512, 2048])
 
-    # AVGPOOL (≈1 line). Use "X = AveragePooling2D(...)(X)"
-    X = AveragePooling2D(pool_size = (2, 2), name = "avg_pool")(X)
+    x = GlobalMaxPooling2D()(x)
 
     # output layer 
-    X = Flatten()(X)
-    X = Dense(100, activation = "relu")(X)
+    angle_out = Dense(15, activation='softmax', name='angle_out')(x)
+    throttle_out = Dense(15, activation='softmax', name='throttle_out')(x)
 
-    angle_out = Dense(units=1, activation='linear', name='angle_out')(X)
-    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(X)
-
-    return Model(inputs=[X_input], outputs=[angle_out, throttle_out])
-
+    return Model(inputs=[x_input], outputs=[angle_out,throttle_out])
 
 class Resnet50Model(KerasPilot):
     def __init__(self, model=None, *args, **kwargs):
@@ -205,8 +222,6 @@ class Resnet50Model(KerasPilot):
 
     def create_model(self):
         model = ResNet50()
-        model.compile(optimizer='adam',
-                  loss={'angle_out': 'mean_squared_error',
-                        'throttle_out': 'mean_squared_error'})
+        model.compile(optimizer='adam', loss='mean_squared_error')
 
         return model
