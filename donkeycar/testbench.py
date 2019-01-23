@@ -11,7 +11,8 @@ Options:
 """
 
 from docopt import docopt
-from donkeycar.parts.keras import CustomSequential
+from parts.keras import CustomSequential
+from parts.resnet50 import Resnet50Model
 from PIL import Image
 
 import numpy as np
@@ -37,7 +38,7 @@ cv2.createTrackbar("Speed", "image", 5, 10, nothing)
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 def drawAngleBar(img, data):
-    angle = data['user/angle']
+    angle = data[0]
 
     angle_color = (255, 0, 0) if angle > 0 else (255, 255, 0)
     angle_end = int(40 + (angle * 30))
@@ -47,7 +48,7 @@ def drawAngleBar(img, data):
 
 
 def drawThrottleBar(img, data):
-    throttle = data['user/throttle']
+    throttle = data[1]
 
     throttle_end = int(60 - throttle * 40)
     cv2.line(img, (10, 20), (10, 60), (255, 255, 255), 2)
@@ -149,7 +150,7 @@ def drawOverlay(img, data, only_outputs):
 
 def test(path, model_path = None):
 
-    kl = CustomSequential()
+    kl = Resnet50Model()
     if model_path:
         kl.load(model_path)
 
@@ -164,7 +165,7 @@ def test(path, model_path = None):
         img = np.array(img)
         only_outputs = False
         if model_path:
-            data = kl.run(img)
+            data = kl.run(img / 255)
             only_outputs = True
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

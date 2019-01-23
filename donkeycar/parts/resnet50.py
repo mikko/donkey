@@ -3,7 +3,7 @@
 resnet50.py
 
 Implements Deep residual architecture with slight tunings for donkey car
-Highly inspired by original Resnet paper: https://arxiv.org/abs/1512.03385
+Highly inspired by original Resnet paper: https://arxiv.<org/abs/1512.03385
 
 """
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
@@ -12,6 +12,8 @@ from tensorflow.python.keras.models import Model, load_model
 
 import datetime
 import numpy as np
+
+from util.data import linear_unbin
 
 class KerasPilot:
 
@@ -217,11 +219,11 @@ class Resnet50Model(KerasPilot):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
 
         angle, throttle = self.model.predict([img_arr])
-
-        return angle[0][0], throttle[0][0]
+        print(np.argmax(angle[0]))
+        return linear_unbin(angle[0]), linear_unbin(throttle[0])
 
     def create_model(self):
         model = ResNet50()
-        model.compile(optimizer='adam', loss='mean_squared_error')
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         return model
