@@ -24,7 +24,7 @@ from donkeycar.util.loader import create_instance
 from donkeycar.util.data import linear_bin
 
 # These used to live in config but not anymore
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
