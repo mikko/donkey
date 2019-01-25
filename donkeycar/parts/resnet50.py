@@ -13,7 +13,7 @@ from tensorflow.python.keras.models import Model, load_model
 import datetime
 import numpy as np
 
-from util.data import linear_unbin
+from donkeycar.util.data import linear_unbin
 
 class KerasPilot:
 
@@ -198,10 +198,10 @@ def ResNet50(input_shape = (100, 240, 3)):
     x = GlobalMaxPooling2D()(x)
 
     # output layer 
-    angle_out = Dense(15, activation='softmax', name='angle_out')(x)
-    throttle_out = Dense(15, activation='softmax', name='throttle_out')(x)
+    output = Dense(30, activation='softmax')(x)
+    
 
-    return Model(inputs=[x_input], outputs=[angle_out,throttle_out])
+    return Model(inputs=[x_input], outputs=[output])
 
 class Resnet50Model(KerasPilot):
     def __init__(self, model=None, *args, **kwargs):

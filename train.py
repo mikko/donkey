@@ -32,7 +32,7 @@ DEFAULT_CLASS = 'CustomSequential'
 
 def load_image(path):
     img = Image.open(path)
-    return np.array(img)
+    return np.array(img) / 255
 
 def get_generator(input_keys, output_keys, record_paths, meta):
     while True:
@@ -46,11 +46,9 @@ def get_generator(input_keys, output_keys, record_paths, meta):
                 for i in range(len(inputs)):
                     type = input_types[i]
                     if (type == 'image_array'):
-                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i])) / 255
-                for i in range(len(outputs)):
-                    key = output_keys[i]
-                    if (key == 'user/angle' or key == 'user/throttle'):
-                        outputs[i] = linear_bin(outputs[i])
+                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
+
+                outputs = np.arr(np.concatenate([outputs[0], outputs[1]], axis=None))
                 yield inputs, outputs
 
 def get_batch_generator(input_keys, output_keys, records, meta):
@@ -143,6 +141,8 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     steps_per_epoch = total_train // BATCH_SIZE
 
     print("Amount of training data available", total_train)
+    print("Batch size", BATCH_SIZE)
+    print("Batches per Epoch", steps_per_epoch)
     time = datetime.utcnow().strftime('%Y-%m-%d_%H:%M')
 
     kl.train(train_gen,
