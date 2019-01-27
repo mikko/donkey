@@ -48,7 +48,7 @@ def get_generator(input_keys, output_keys, record_paths, meta):
                     if (type == 'image_array'):
                         inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
 
-                outputs = np.arr(np.concatenate([outputs[0], outputs[1]], axis=None))
+                outputs = np.expand_dims(np.concatenate([linear_bin(outputs[0]), linear_bin(outputs[1])], axis=None), axis=0)
                 yield inputs, outputs
 
 def get_batch_generator(input_keys, output_keys, records, meta):
@@ -57,18 +57,15 @@ def get_batch_generator(input_keys, output_keys, records, meta):
     # 0: [input_1[batch_size],input_2[batch_size]]
     # 1: [output_1[batch_size],output_2[batch_size]]
     record_gen = get_generator(input_keys, output_keys, records, meta)
+    inputs = []
+    outputs = []
     while True:
         raw_batch = [next(record_gen) for _ in range(BATCH_SIZE)]
-        inputs = [[] for _ in range(len(input_keys))]
-        outputs = [[] for _ in range(len(output_keys))]
         for rec in raw_batch:
-            for i in range(len(input_keys)):
-                inputs[i].append(rec[0][i])
-            for i in range(len(output_keys)):
-                outputs[i].append(rec[1][i])
-        numpyInputs = [np.asarray(ar) for ar in inputs]
-        numpyOutputs = [np.asarray(ar) for ar in outputs]
-        yield numpyInputs, numpyOutputs
+            inputs.append(rec[0][0])
+            outputs.append(rec[1][0])
+            
+        yield np.array(inputs), np.array(outputs)
 
 def get_meta(path):
     try:
@@ -144,6 +141,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     print("Batch size", BATCH_SIZE)
     print("Batches per Epoch", steps_per_epoch)
     time = datetime.utcnow().strftime('%Y-%m-%d_%H:%M')
+    # print(next(train_gen))
 
     kl.train(train_gen,
              val_gen,

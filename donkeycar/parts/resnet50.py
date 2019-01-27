@@ -55,10 +55,10 @@ class KerasPilot:
 
         date = datetime.datetime.now().strftime('%y-%m-%d-%H-%M')
 
-        tbCallBack = TensorBoard(log_dir=('./tensorboard_logs/%s' % date), histogram_freq=0, write_graph=True,
-                                                 write_images=True)
+        #tbCallBack = TensorBoard(log_dir=('./tensorboard_logs/%s' % date), histogram_freq=0, write_graph=True,
+        #                                        write_images=True)
 
-        callbacks_list = [save_best, tbCallBack]
+        callbacks_list = [save_best]
 
         if use_early_stop:
             callbacks_list.append(early_stop)
@@ -177,23 +177,23 @@ def ResNet50(input_shape = (100, 240, 3)):
     x = id_block(x, 3, [64, 64, 256])
 
     # Stage 3
-    x = conv_block(x, f = 3, filters = [128, 128, 512], s = 2)
-    x = id_block(x, 3, [128, 128, 512])
-    x = id_block(x, 3, [128, 128, 512])
-    x = id_block(x, 3, [128, 128, 512])
+    #x = conv_block(x, f = 3, filters = [128, 128, 512], s = 2)
+    #x = id_block(x, 3, [128, 128, 512])
+    #x = id_block(x, 3, [128, 128, 512])
+    #x = id_block(x, 3, [128, 128, 512])
 
     # Stage 4
-    x = conv_block(x, f = 3, filters = [256, 256, 1024], s = 2)
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
+    #x = conv_block(x, f = 3, filters = [256, 256, 1024], s = 2)
+    #x = id_block(x, 3, [256, 256, 1024])
+    #x = id_block(x, 3, [256, 256, 1024])
+    #x = id_block(x, 3, [256, 256, 1024])
+    #x = id_block(x, 3, [256, 256, 1024])
+    #x = id_block(x, 3, [256, 256, 1024])
 
     # Stage 5
-    x = conv_block(x, f = 3, filters = [512, 512, 2048], s = 2)
-    x = id_block(x, 3, [512, 512, 2048])
-    x = id_block(x, 3, [512, 512, 2048])
+    #x = conv_block(x, f = 3, filters = [512, 512, 2048], s = 2)
+    #x = id_block(x, 3, [512, 512, 2048])
+    #x = id_block(x, 3, [512, 512, 2048])
 
     x = GlobalMaxPooling2D()(x)
 
