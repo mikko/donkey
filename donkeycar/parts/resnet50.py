@@ -159,48 +159,49 @@ def conv_block(x, f, filters, s=(2,2)):
 def ResNet50(input_shape = (100, 240, 3)):
     x_input = Input(input_shape)
 
-    x = ZeroPadding2D((3, 3))(x_input)
+    # x = ZeroPadding2D((3, 3))(x_input)
 
-    # Stage 1
-    x = Conv2D(64, (7, 7), 
-            kernel_initializer='he_normal',
-            strides=(2,2),
-            padding='valid')(x)
-    x = BatchNormalization(axis = 3)(x)
-    x = Activation("relu")(x)
-    x = ZeroPadding2D(padding=(1, 1))(x)
-    x = MaxPooling2D((3, 3), strides = (2, 2))(x)
+    # # Stage 1
+    # x = Conv2D(64, (7, 7), 
+    #         kernel_initializer='he_normal',
+    #         strides=(2,2),
+    #         padding='valid')(x)
+    # x = BatchNormalization(axis = 3)(x)
+    # x = Activation("relu")(x)
+    # x = ZeroPadding2D(padding=(1, 1))(x)
+    # x = MaxPooling2D((3, 3), strides = (2, 2))(x)
 
-    # Stage 2
-    x = conv_block(x, f = 3, filters = [64, 64, 256], s = 1)
-    x = id_block(x, 3, [64, 64, 256])
-    x = id_block(x, 3, [64, 64, 256])
+    # # Stage 2
+    # x = conv_block(x, f = 3, filters = [64, 64, 256], s = 1)
+    # x = id_block(x, 3, [64, 64, 256])
+    # x = id_block(x, 3, [64, 64, 256])
 
-    # Stage 3
-    x = conv_block(x, f = 3, filters = [128, 128, 512], s = 2)
-    x = id_block(x, 3, [128, 128, 512])
-    x = id_block(x, 3, [128, 128, 512])
-    x = id_block(x, 3, [128, 128, 512])
+    # # Stage 3
+    # x = conv_block(x, f = 3, filters = [128, 128, 512], s = 2)
+    # x = id_block(x, 3, [128, 128, 512])
+    # x = id_block(x, 3, [128, 128, 512])
+    # x = id_block(x, 3, [128, 128, 512])
 
-    # Stage 4
-    x = conv_block(x, f = 3, filters = [256, 256, 1024], s = 2)
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
-    x = id_block(x, 3, [256, 256, 1024])
+    # # Stage 4
+    # x = conv_block(x, f = 3, filters = [256, 256, 1024], s = 2)
+    # x = id_block(x, 3, [256, 256, 1024])
+    # x = id_block(x, 3, [256, 256, 1024])
+    # x = id_block(x, 3, [256, 256, 1024])
+    # x = id_block(x, 3, [256, 256, 1024])
+    # x = id_block(x, 3, [256, 256, 1024])
 
-    # Stage 5
-    x = conv_block(x, f = 3, filters = [512, 512, 2048], s = 2)
-    x = id_block(x, 3, [512, 512, 2048])
-    x = id_block(x, 3, [512, 512, 2048])
+    # # Stage 5
+    # x = conv_block(x, f = 3, filters = [512, 512, 2048], s = 2)
+    # x = id_block(x, 3, [512, 512, 2048])
+    # x = id_block(x, 3, [512, 512, 2048])
 
-    x = GlobalMaxPooling2D()(x)
+    # x = GlobalMaxPooling2D()(x)
 
     # output layer
-    x = Dense(50, activation='relu')(x)
-    x = Dense(50, activation='relu')(x)
-    x = Dense(50, activation='relu')(x) 
+    x = Flatten()(x)
+    x = Dense(100, activation='relu')(x)
+    x = Dense(100, activation='relu')(x)
+    x = Dense(100, activation='relu')(x) 
     output = Dense(30, activation='softmax')(x)
     
 
