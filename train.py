@@ -57,9 +57,9 @@ def get_batch_generator(input_keys, output_keys, records, meta):
     # 0: [input_1[batch_size],input_2[batch_size]]
     # 1: [output_1[batch_size],output_2[batch_size]]
     record_gen = get_generator(input_keys, output_keys, records, meta)
-    inputs = []
-    outputs = []
     while True:
+        inputs = []
+        outputs = []
         raw_batch = [next(record_gen) for _ in range(BATCH_SIZE)]
         for rec in raw_batch:
             inputs.append(rec[0][0])
