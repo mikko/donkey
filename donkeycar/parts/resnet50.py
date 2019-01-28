@@ -197,7 +197,10 @@ def ResNet50(input_shape = (100, 240, 3)):
 
     x = GlobalMaxPooling2D()(x)
 
-    # output layer 
+    # output layer
+    x = Dense(50, activation='relu')(x)
+    x = Dense(50, activation='relu')(x)
+    x = Dense(50, activation='relu')(x) 
     output = Dense(30, activation='softmax')(x)
     
 
