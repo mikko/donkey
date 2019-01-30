@@ -198,7 +198,7 @@ def ResNet50(input_shape = (100, 240, 3)):
     # x = GlobalMaxPooling2D()(x)
 
     # output layer
-    x = Flatten()(x)
+    x = Flatten()(x_input)
     x = Dense(100, activation='relu')(x)
     x = Dense(100, activation='relu')(x)
     x = Dense(100, activation='relu')(x) 
