@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_augmentation] [--skip_flip]
+    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_augmentation] [--skip_flip] [--skip_brightness] [--skip_shadow]
 
 Options:
     -h --help        Show this screen.
@@ -143,8 +143,10 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     if (augment):
         if not skip_flip:
             augmentations.append(aug_flip)
-        augmentations.append(aug_brightness)
-        augmentations.append(aug_shadow)
+        if not skip_brightness:
+            augmentations.append(aug_brightness)
+        if not skip_shadow:
+            augmentations.append(aug_shadow)
 
     # Load base model if given
     if base_model_path is not None:
@@ -183,11 +185,13 @@ if __name__ == '__main__':
     base_model_path = args['--base_model']
     augment = not args['--no_augmentation']
     skip_flip = args['--skip_flip']
+    skip_brightness = args['--skip_brightness']
+    skip_shadow = args['--skip_shadow']
 
     print('Augment ', augment)
     print('Skip Flip', skip_flip)
 
-    train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip)
+    train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip, skip_brightness, skip_shadow)
 
 
 
