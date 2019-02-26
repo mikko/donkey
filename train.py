@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_cache]
+    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_augmentation] [--skip_flip]
 
 Options:
     -h --help        Show this screen.
@@ -29,7 +29,6 @@ TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
 DEFAULT_CLASS = 'CustomSequential'
-
 
 def load_image(path):
     img = Image.open(path)
@@ -124,7 +123,7 @@ def get_train_val_gen(inputs, outputs, tub_names, augmentations):
                 all_validation.extend(validation_files)
     return get_batch_generator(inputs, outputs, all_train, first_meta, augmentations), get_batch_generator(inputs, outputs, all_validation, first_meta, augmentations), record_count
 
-def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None):
+def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None, augment=True, skip_flip=False):
 
     if not module_name:
         module_name = DEFAULT_MODULE
@@ -139,7 +138,13 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    augmentations = [aug_flip, aug_brightness, aug_shadow]
+    augmentations = [];
+
+    if (augment):
+        if not skip_flip:
+            augmentations.append(aug_flip)
+        augmentations.append(aug_brightness)
+        augmentations.append(aug_shadow)
 
     # Load base model if given
     if base_model_path is not None:
@@ -176,8 +181,13 @@ if __name__ == '__main__':
     class_name = args['--class']
     new_model_path = args['--model']
     base_model_path = args['--base_model']
-    cache = not args['--no_cache']
-    train(tub, new_model_path, base_model_path, module_name, class_name)
+    augment = not args['--no_augmentation']
+    skip_flip = args['--skip_flip']
+
+    print('Augment ', augment)
+    print('Skip Flip', skip_flip)
+
+    train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip)
 
 
 
