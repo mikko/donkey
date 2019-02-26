@@ -118,12 +118,15 @@ def get_train_val_gen(inputs, outputs, tub_names, augmentations):
                 split = int(round(len(files_and_paths) * TRAIN_TEST_SPLIT))
                 train_files, validation_files = files_and_paths[:split], files_and_paths[split:]
                 record_count += len(files_and_paths) * (2 ** len(augmentations))
+                if len(augmentations) > 0:
+                    print("Record count (w/o augmentation): ", len(files_and_paths))
                 print("Total count: ", record_count)
+
                 all_train.extend(train_files)
                 all_validation.extend(validation_files)
     return get_batch_generator(inputs, outputs, all_train, first_meta, augmentations), get_batch_generator(inputs, outputs, all_validation, first_meta, augmentations), record_count
 
-def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None, augment=True, skip_flip=False):
+def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None, augment=True, skip_flip=False, skip_brightness=False, skip_shadow=False):
 
     if not module_name:
         module_name = DEFAULT_MODULE
@@ -164,8 +167,6 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     steps_per_epoch = total_train // BATCH_SIZE
 
-    print("EPOCHS ", total_train, BATCH_SIZE, "=>", steps_per_epoch)
-
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
 
@@ -187,9 +188,6 @@ if __name__ == '__main__':
     skip_flip = args['--skip_flip']
     skip_brightness = args['--skip_brightness']
     skip_shadow = args['--skip_shadow']
-
-    print('Augment ', augment)
-    print('Skip Flip', skip_flip)
 
     train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip, skip_brightness, skip_shadow)
 
