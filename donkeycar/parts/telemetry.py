@@ -1,4 +1,5 @@
 import paho.mqtt.client as mqtt
+import json
 
 class Telemetry:
 
@@ -8,36 +9,36 @@ class Telemetry:
       print("message qos=",message.qos)
       print("message retain flag=",message.retain)
 
-  def __init__(self, inputs, broker='broker.hivemq.com', subscribe=False):
+  def send_telemetry(self, *args):
+    assert len(self.inputs) == len(args)
+    self.client.publish(self.topic, json.dumps(dict(zip(self.inputs, args))))
+
+  def __init__(self, inputs, broker='broker.hivemq.com', topic='donkey-telemetry-data', subscribe=False):
     self.on = True
+    self.topic = topic
     self.inputs = inputs
     self.args = None
     self.client = mqtt.Client()
-    if subscribe:
-      self.client.on_message = self.on_message
     self.client.connect(broker)
     self.client.loop_start()
-    for input in self.inputs:
-      self.client.subscribe(input)
+    if subscribe:
+      self.client.on_message = self.on_message
+      self.client.subscribe(topic)
+
+  def run(self, *args):
+    self.send_telemetry(args)
 
   def run_threaded(self, args):
     self.args = args
 
-  def run(self, *args):
-    assert len(self.inputs) == len(args)
-    for index, arg in enumerate(args):
-      self.client.publish(self.inputs[index], arg)
+  def update(self):
+    self.send_telemetry(self.args)
 
   def shutdown(self):
     # indicate that the thread should be stopped
     self.on = False
     self.client.loop_stop()
     print('stopping telemetry')
-
-  def update(self):
-    assert len(self.inputs) == len(self.args)
-    for index, arg in enumerate(self.args):
-      self.client.publish(self.inputs[index], arg)
 
 if __name__ == "__main__":
   import time
@@ -47,3 +48,4 @@ if __name__ == "__main__":
     p.run(iter)
     time.sleep(0.1)
     iter += 1
+    
