@@ -14,24 +14,33 @@ import json
 import os
 
 import numpy as np
-from PIL import Image
+import cv2
+
 from docopt import docopt
 from datetime import datetime
-from augment import aug_brightness, aug_shadow, aug_flip
 
 import donkeycar as dk
 # import parts
 from donkeycar.util.loader import create_instance
+from augment import aug_brightness, aug_shadow2, aug_flip
 
 # These used to live in config but not anymore
-BATCH_SIZE = 128
+BATCH_SIZE = 8
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
 DEFAULT_CLASS = 'CustomSequential'
 
+img_count = 0
+
+def write_img(img, type):
+    global img_count
+    name = 'output/file_' + str(img_count) + '_' + type + '.jpg'
+    img_count = img_count + 1
+    cv2.imwrite(name, img)
+
 def load_image(path):
-    img = Image.open(path)
+    img = cv2.imread(path)
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
@@ -61,7 +70,6 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
                         new_list.append(new_tuple)
                         yield new_tuple
                     ls = ls + new_list
-
 
 def get_batch_generator(input_keys, output_keys, records, meta, augmentation):
     # Yield here a tuple (inputs, outputs)
@@ -141,7 +149,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     new_model_path = os.path.expanduser(new_model_path)
 
-    augmentations = [];
+    augmentations = []
 
     if (augment):
         if not skip_flip:
@@ -149,7 +157,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
         if not skip_brightness:
             augmentations.append(aug_brightness)
         if not skip_shadow:
-            augmentations.append(aug_shadow)
+            augmentations.append(aug_shadow2)
 
     # Load base model if given
     if base_model_path is not None:
@@ -170,9 +178,20 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
 
+    # running = True
+    # count = 0
+    # while running and count < 40:
+    #    batch = next(train_gen)
+    #    print('Start: ', len(batch[0][0]))
+    #    for val in batch[1][0]:
+    #        print('x-value', val)
+    #    for img in batch[0][0]:
+    #        write_img(img, 'output')
+    #    count = count + 1
+
     kl.train(train_gen,
              val_gen,
-             saved_model_path=f'{class_name}-{time}-{new_model_path}',
+             saved_model_path=f'{new_model_path}',
              steps=steps_per_epoch,
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
@@ -190,8 +209,3 @@ if __name__ == '__main__':
     skip_shadow = args['--skip_shadow']
 
     train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip, skip_brightness, skip_shadow)
-
-
-
-
-
