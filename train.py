@@ -29,9 +29,14 @@ TRAIN_TEST_SPLIT = 0.9
 DEFAULT_MODULE = 'donkeycar.parts.keras'
 DEFAULT_CLASS = 'CustomWithHistory'
 
+
+def crop_vertical(img,offset,height):
+    return img[offset:(offset + height), 0:img.shape[1]]
+
 def load_image(path):
     img = Image.open(path)
-    return np.array(img)
+    img = np.array(img)
+    return crop_vertical(img, 25, 100)
 
 def get_generator(input_keys, output_keys, record_paths, meta):
     while True:
@@ -147,7 +152,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     kl.train(train_gen,
              val_gen,
-             saved_model_path=f'{class_name}-{time}-{new_model_path}',
+             saved_model_path=new_model_path,
              steps=steps_per_epoch,
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
