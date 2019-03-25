@@ -261,3 +261,64 @@ def custom_sequential():
                   loss_weights={'angle_out': 0.6, 'throttle_out': 0.4})
 
     return model
+
+
+class Speedy(KerasPilot):
+    def __init__(self, model=None, *args, **kwargs):
+        super(Speedy, self).__init__(*args, **kwargs)
+        if model:
+            self.model = model
+        else:
+            self.model = speedy()
+
+        model_json = self.model.to_json(indent=2)
+        with open("latest_model.json", "w") as json_file:
+            json_file.write(model_json)
+            print('Saved model to JSON')
+
+    def inputs(self):
+        return ['cam/image_array', 'telemetry/speed']
+
+    def run(self, img_arr, speed):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        speed = np.array(speed).reshape((1,))
+        angle, throttle = self.model.predict([img_arr, speed])
+        return angle[0][0], throttle[0][0]
+
+def speedy():
+    # Should crop to this size
+    img_in = Input(shape=(100, 240, 3),
+                   name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
+
+    speed_in = Input(shape=(1,), name='speed_in')
+
+    # Current image convolution
+    x = img_in
+    x = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu')(
+        x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
+    x = Convolution2D(32, (5, 5), strides=(2, 2), activation='relu')(
+        x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
+    x = Convolution2D(64, (5, 5), strides=(2, 2), activation='relu')(
+        x)  # 64 features, 5px5p kernal window, 2wx2h stride, relu
+    x = Convolution2D(64, (3, 3), strides=(2, 2), activation='relu')(
+        x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
+    x = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
+        x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
+
+    x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
+    x = Concatenate(name='image_with_speed')([x, speed_in])
+    x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
+    x = Dropout(.1)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
+    x = Dense(50, activation='relu')(x)  # Classify the data into 50 features, make all negatives 0
+    x = Dropout(.1)(x)  # Randomly drop out 10% of the neurons (Prevent overfitting)
+
+    angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
+    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
+
+    model = Model(inputs=[img_in, speed_in], outputs=[angle_out, throttle_out])
+    model.compile(optimizer='adam',
+                  loss={'angle_out': 'mean_squared_error',
+                        'throttle_out': 'mean_squared_error'},
+                  loss_weights={'angle_out': 0.6, 'throttle_out': 0.4})
+
+    return model
