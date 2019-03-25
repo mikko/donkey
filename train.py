@@ -3,7 +3,7 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_cache]
+    train.py [--tub=<tub1,tub2,..tubn>] (--model=<model>) [--base_model=<base_model>] [--module=<module_name>] [--class=<class_name>] [--no_augmentation] [--skip_flip] [--skip_brightness] [--skip_shadow]
 
 Options:
     -h --help        Show this screen.
@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 from docopt import docopt
 from datetime import datetime
+from augment import aug_brightness, aug_shadow, aug_flip
 
 import donkeycar as dk
 # import parts
@@ -27,7 +28,7 @@ BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
-DEFAULT_CLASS = 'CustomWithHistory'
+DEFAULT_CLASS = 'CustomSequential'
 
 
 def crop_vertical(img,offset,height):
@@ -38,7 +39,7 @@ def load_image(path):
     img = np.array(img)
     return crop_vertical(img, 25, 100)
 
-def get_generator(input_keys, output_keys, record_paths, meta):
+def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
     while True:
         for (record_path, tub_path) in record_paths:
             with open(record_path, 'r') as record_file:
@@ -55,14 +56,24 @@ def get_generator(input_keys, output_keys, record_paths, meta):
                         # Currently previous images are in array, but there is only one
                         imagePath = inputs[i][0]
                         inputs[i] = load_image("%s/%s" % (tub_path, imagePath))
-                yield inputs, outputs
 
-def get_batch_generator(input_keys, output_keys, records, meta):
+                yield inputs, outputs
+                ls = [(inputs, outputs)]
+                for aug in augmentations:
+                    new_list = []
+                    for item in ls:
+                        new_tuple = aug(item[0], item[1])
+                        new_list.append(new_tuple)
+                        yield new_tuple
+                    ls = ls + new_list
+
+
+def get_batch_generator(input_keys, output_keys, records, meta, augmentation):
     # Yield here a tuple (inputs, outputs)
     # both having arrays with batch_size length like:
     # 0: [input_1[batch_size],input_2[batch_size]]
     # 1: [output_1[batch_size],output_2[batch_size]]
-    record_gen = get_generator(input_keys, output_keys, records, meta)
+    record_gen = get_generator(input_keys, output_keys, records, meta, augmentation)
     while True:
         raw_batch = [next(record_gen) for _ in range(BATCH_SIZE)]
         inputs = [[] for _ in range(len(input_keys))]
@@ -89,7 +100,7 @@ def get_meta(path):
         return None
 
 
-def get_train_val_gen(inputs, outputs, tub_names):
+def get_train_val_gen(inputs, outputs, tub_names, augmentations):
     print('Loading data', tub_names)
     print('Inputs', inputs)
     print('Outputs', outputs)
@@ -97,6 +108,7 @@ def get_train_val_gen(inputs, outputs, tub_names):
     record_count = 0
     all_train = []
     all_validation = []
+    first_meta = None
     for tub in tubs:
         # _original skipped by design
         if ('_original' not in tub):
@@ -110,13 +122,16 @@ def get_train_val_gen(inputs, outputs, tub_names):
                 np.random.shuffle(files_and_paths)
                 split = int(round(len(files_and_paths) * TRAIN_TEST_SPLIT))
                 train_files, validation_files = files_and_paths[:split], files_and_paths[split:]
-                record_count += len(files_and_paths)
+                record_count += len(files_and_paths) * (2 ** len(augmentations))
+                if len(augmentations) > 0:
+                    print("Record count (w/o augmentation): ", len(files_and_paths))
+                print("Total count: ", record_count)
+
                 all_train.extend(train_files)
                 all_validation.extend(validation_files)
-    return get_batch_generator(inputs, outputs, all_train, first_meta), get_batch_generator(inputs, outputs, all_validation, first_meta), record_count
+    return get_batch_generator(inputs, outputs, all_train, first_meta, augmentations), get_batch_generator(inputs, outputs, all_validation, first_meta, augmentations), record_count
 
-
-def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None):
+def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None, augment=True, skip_flip=False, skip_brightness=False, skip_shadow=False):
 
     if not module_name:
         module_name = DEFAULT_MODULE
@@ -131,6 +146,16 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     new_model_path = os.path.expanduser(new_model_path)
 
+    augmentations = [];
+
+    if (augment):
+        if not skip_flip:
+            augmentations.append(aug_flip)
+        if not skip_brightness:
+            augmentations.append(aug_brightness)
+        if not skip_shadow:
+            augmentations.append(aug_shadow)
+
     # Load base model if given
     if base_model_path is not None:
         base_model_path = os.path.expanduser(base_model_path)
@@ -143,7 +168,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
         return
         # tub_names = os.path.join(cfg.DATA_PATH, '*')
 
-    train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names)
+    train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names, augmentations)
 
     steps_per_epoch = total_train // BATCH_SIZE
 
@@ -157,7 +182,6 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
 
-
 if __name__ == '__main__':
     args = docopt(__doc__)
     tub = args['--tub']
@@ -165,8 +189,12 @@ if __name__ == '__main__':
     class_name = args['--class']
     new_model_path = args['--model']
     base_model_path = args['--base_model']
-    cache = not args['--no_cache']
-    train(tub, new_model_path, base_model_path, module_name, class_name)
+    augment = not args['--no_augmentation']
+    skip_flip = args['--skip_flip']
+    skip_brightness = args['--skip_brightness']
+    skip_shadow = args['--skip_shadow']
+
+    train(tub, new_model_path, base_model_path, module_name, class_name, augment, skip_flip, skip_brightness, skip_shadow)
 
 
 

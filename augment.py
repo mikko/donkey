@@ -146,6 +146,60 @@ def augment_history(img, data):
 
     return (img, data_with_history)
 
+def aug_flip(inputs, outputs):
+    img = inputs[0]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.flip(img, 1)
+
+    augmented_inputs = [img]
+    augmented_outputs = [-outputs[0], outputs[1]]
+
+    return augmented_inputs, augmented_outputs
+
+def aug_brightness(inputs, outputs):
+    img = inputs[0]
+    img = cv2.cvtColor(img,cv2.COLOR_RGB2HSV)
+    img = np.array(img, dtype = np.float64)
+    random_bright = .5+np.random.uniform()
+    img[:,:,2] = img[:,:,2]*random_bright
+    img[:,:,2][img[:,:,2]>255]  = 255
+    img = np.array(img, dtype = np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+
+    augmented_inputs = [img]
+
+    return augmented_inputs, outputs
+
+
+def aug_shadow(inputs, outputs):
+    img = inputs[0]
+
+    top_y = 320 * np.random.uniform()
+    top_x = 0
+    bot_x = 160
+    bot_y = 320 * np.random.uniform()
+    image_hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    shadow_mask = 0 * image_hls[:, :, 1]
+    X_m = np.mgrid[0:img.shape[0], 0:img.shape[1]][0]
+    Y_m = np.mgrid[0:img.shape[0], 0:img.shape[1]][1]
+
+    shadow_mask[((X_m - top_x) * (bot_y - top_y) - (bot_x - top_x) * (Y_m - top_y) >= 0)] = 1
+    # random_bright = .25+.7*np.random.uniform()
+    if np.random.randint(2) == 1:
+        random_bright = .5
+        cond1 = shadow_mask == 1
+        cond0 = shadow_mask == 0
+        if np.random.randint(2) == 1:
+            image_hls[:, :, 1][cond1] = image_hls[:, :, 1][cond1] * random_bright
+        else:
+            image_hls[:, :, 1][cond0] = image_hls[:, :, 1][cond0] * random_bright
+    img = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
+
+    augmented_inputs = [img]
+
+    return augmented_inputs, outputs
+
+
 def augment_flip(img, data):
     data = copy.deepcopy(data)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
