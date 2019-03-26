@@ -282,8 +282,8 @@ class Speedy(KerasPilot):
     def run(self, img_arr, speed):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         speed = np.array(speed).reshape((1,))
-        angle, throttle = self.model.predict([img_arr, speed])
-        return angle[0][0], throttle[0][0]
+        angle, throttle, brake = self.model.predict([img_arr, speed])
+        return angle[0][0], throttle[0][0], brake[0][0]
 
 def speedy():
     # Should crop to this size
@@ -314,11 +314,14 @@ def speedy():
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
+    brake_out = Dense(units=1, activation='linear', name='brake_out')(x)
 
-    model = Model(inputs=[img_in, speed_in], outputs=[angle_out, throttle_out])
+    model = Model(inputs=[img_in, speed_in], outputs=[angle_out, throttle_out, brake_out])
     model.compile(optimizer='adam',
                   loss={'angle_out': 'mean_squared_error',
-                        'throttle_out': 'mean_squared_error'},
-                  loss_weights={'angle_out': 0.6, 'throttle_out': 0.4})
+                        'throttle_out': 'mean_squared_error',
+                        'brake_out':  'mean_squared_error'},
+                  loss_weights={'angle_out': 0.8, 'throttle_out': 0.2, 'brake_out': 0.2})
+
 
     return model

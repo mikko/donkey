@@ -142,7 +142,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     inputs = kl.inputs()
 
-    outputs = ['user/angle', 'user/throttle']
+    outputs = ['user/angle', 'user/throttle', 'user/brake']
 
     new_model_path = os.path.expanduser(new_model_path)
 

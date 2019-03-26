@@ -150,11 +150,11 @@ def aug_flip(inputs, outputs):
     img = inputs[0]
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.flip(img, 1)
+    inputs[0] = img
 
-    augmented_inputs = [img]
-    augmented_outputs = [-outputs[0], outputs[1]]
+    outputs[0] = -outputs[0]
 
-    return augmented_inputs, augmented_outputs
+    return inputs, outputs
 
 def aug_brightness(inputs, outputs):
     img = inputs[0]
@@ -166,9 +166,8 @@ def aug_brightness(inputs, outputs):
     img = np.array(img, dtype = np.uint8)
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
 
-    augmented_inputs = [img]
-
-    return augmented_inputs, outputs
+    inputs[0] = img
+    return inputs, outputs
 
 
 def aug_shadow(inputs, outputs):
@@ -195,9 +194,9 @@ def aug_shadow(inputs, outputs):
             image_hls[:, :, 1][cond0] = image_hls[:, :, 1][cond0] * random_bright
     img = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
 
-    augmented_inputs = [img]
+    inputs[0] = img
 
-    return augmented_inputs, outputs
+    return inputs, outputs
 
 
 def augment_flip(img, data):
