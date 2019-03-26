@@ -306,12 +306,11 @@ def speedy():
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
 
     x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
-    x = Concatenate(name='image_with_speed')([x, speed_in])
     x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
     x = Dropout(.1)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
     x = Dense(50, activation='relu')(x)  # Classify the data into 50 features, make all negatives 0
     x = Dropout(.1)(x)  # Randomly drop out 10% of the neurons (Prevent overfitting)
-
+    x = Concatenate(name='image_with_speed')([x, speed_in])
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
     brake_out = Dense(units=1, activation='linear', name='brake_out')(x)
