@@ -1,0 +1,10 @@
+.selectedCar {
+  /* width: 120px;
+  height: 31px; */
+  /* background: rgba(255, 255, 255, 0.2); */
+  margin: 0 24px 0 0;
+  float: left;
+  line-height: 64px;
+  color: white;
+  font-size: 2rem;
+}

@@ -1,0 +1,59 @@
+.tubPlayer {
+  border: 1px solid black;
+  max-width: 800px;
+}
+
+.tubPlayerImage {
+  width: 100%;
+  height: auto;
+}
+
+.tubplayerslidercontrol {
+  border: 1px solid black;
+  border-left: 0;
+  border-right: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.tubplayerslider {
+  flex: 1;
+  margin: 0 1rem;
+  align-self: center;
+}
+
+.tubplayerplaybutton {
+  border-left: 1px solid black;
+  flex: 0 0 36px;
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tubPlayerDetails {
+  display: flex;
+  flex-direction: row;
+  align-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.tubPlayerDataPair {
+  display: flex;
+  flex-direction: row;
+  margin-right: 2rem;
+  align-items: center;
+}
+
+.tubPlayerDataPairLabel {
+  margin-right: 1rem;
+}
+
+.tubPlayerLoadingIndicator {
+  width: 100%;
+  height: 250px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

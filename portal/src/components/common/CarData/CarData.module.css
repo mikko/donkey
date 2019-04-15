@@ -1,0 +1,7 @@
+.tubDetails {
+  margin: 1rem;
+}
+
+.tubPlayerContainer > * {
+  margin: auto;
+}

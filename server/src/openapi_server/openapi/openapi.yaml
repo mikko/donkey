@@ -1,0 +1,429 @@
+openapi: 3.0.2
+info:
+  contact:
+    email: markku@futurice.com
+  description:
+    "This is a sample server Petstore server.  You can find out more about     Swagger
+    at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For
+    this sample, you can use the api key `special-key` to test the authorization     filters."
+  license:
+    name: MIT
+    url: https://mit-license.org/
+  termsOfService: http://swagger.io/terms/
+  title: Markku portal API
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost:8080/
+tags:
+  - description: Access to cars
+    name: car
+  - description: Access to tubs
+    name: tub
+  - description: Access to tub data
+    name: tub data
+  - description: Handle training sessions
+    name: training
+paths:
+  /car:
+    get:
+      description: Multiple status values can be provided with comma separated strings
+      operationId: get_cars
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Car"
+                type: array
+          description: successful operation
+      summary: List all cars
+      tags:
+        - car
+      x-openapi-router-controller: openapi_server.controllers.car_controller
+  /car/{carId}:
+    get:
+      description: Returns a single car
+      operationId: get_car_by_id
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+          description: successful operation
+        400:
+          description: Invalid ID supplied
+        404:
+          description: Car not found
+      summary: Find car by ID
+      tags:
+        - car
+      x-openapi-router-controller: openapi_server.controllers.car_controller
+  /car/{carId}/training:
+    get:
+      operationId: get_training_info_by_car_id
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingInfo"
+          description: successful operation
+        400:
+          description: Invalid car ID supplied
+        404:
+          description: Car not found
+      summary: Returns information about current training session
+      tags:
+        - training
+      x-openapi-router-controller: openapi_server.controllers.training_controller
+    post:
+      operationId: handle_training
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/StartCommand"
+                - $ref: "#/components/schemas/StopCommand"
+              type: object
+        description: Command to send
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingInfo"
+          description: successful operation
+        400:
+          description: Invalid parameters supplied
+        404:
+          description: Car not found
+      summary: Change car's training session
+      tags:
+        - training
+      x-openapi-router-controller: openapi_server.controllers.training_controller
+  /car/{carId}/tub:
+    get:
+      operationId: get_tubs_by_car
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Tub"
+                type: array
+          description: successful operation
+        400:
+          description: Invalid ID supplied
+        404:
+          description: Car not found
+      summary: Returns all tubs for a car
+      tags:
+        - tub
+      x-openapi-router-controller: openapi_server.controllers.tub_controller
+  /car/{carId}/tub/{tubId}:
+    get:
+      operationId: get_tub_by_car_and_id
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of tub to return
+          explode: false
+          in: path
+          name: tubId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tub"
+          description: successful operation
+        400:
+          description: Invalid car or tub ID supplied
+        404:
+          description: Car or tub not found
+      summary: Returns a single tub for a car
+      tags:
+        - tub
+      x-openapi-router-controller: openapi_server.controllers.tub_controller
+  /car/{carId}/tub/{tubId}/data:
+    get:
+      operationId: get_tub_data_points
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of tub to return
+          explode: false
+          in: path
+          name: tubId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/TubDataPoint"
+                type: array
+          description: successful operation
+        400:
+          description: Invalid car or tub ID supplied
+        404:
+          description: Car or tub not found
+      summary: Returns all data points in a tub
+      tags:
+        - tub data
+      x-openapi-router-controller: openapi_server.controllers.tub_data_controller
+  /car/{carId}/tub/{tubId}/data/{dataId}:
+    get:
+      operationId: get_tub_data_point_by_car_and_id
+      parameters:
+        - description: ID of car
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of tub
+          explode: false
+          in: path
+          name: tubId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of data point to return
+          explode: false
+          in: path
+          name: dataId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TubDataPoint"
+          description: successful operation
+        400:
+          description: Invalid car or tub ID supplied
+        404:
+          description: Car or tub not found
+      summary: Returns a single data point in a tub
+      tags:
+        - tub data
+      x-openapi-router-controller: openapi_server.controllers.tub_data_controller
+  /car/{carId}/tub/{tubId}/image/{imageId}:
+    get:
+      operationId: get_image_by_car_and_tub_and_id
+      parameters:
+        - description: ID of car to return
+          explode: false
+          in: path
+          name: carId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of tub to return
+          explode: false
+          in: path
+          name: tubId
+          required: true
+          schema:
+            type: string
+          style: simple
+        - description: ID of image to return
+          explode: false
+          in: path
+          name: imageId
+          required: true
+          schema:
+            type: string
+          style: simple
+      responses:
+        200:
+          description: successful operation
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: Invalid car or tub ID supplied
+        404:
+          description: Car or tub not found
+      summary: Returns an image for single datapoint
+      tags:
+        - tub data
+      x-openapi-router-controller: openapi_server.controllers.tub_data_controller
+components:
+  schemas:
+    Car:
+      example:
+        name: name
+        id: id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+      type: object
+    Tub:
+      example:
+        numDataPoints: 0.8008281904610115
+        name: name
+        id: id
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        timestamp:
+          format: date-time
+          type: string
+        numDataPoints:
+          type: number
+      required:
+        - id
+        - name
+        - numDataPoints
+        - timestamp
+      type: object
+    TubDataPoint:
+      example:
+        throttle: 6.027456183070403
+        imageName: imageName
+        angle: 0.8008281904610115
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        timestamp:
+          format: date-time
+          type: string
+        angle:
+          type: number
+        throttle:
+          type: number
+        imageName:
+          type: string
+      required:
+        - angle
+        - imageName
+        - throttle
+        - timestamp
+      type: object
+    TrainingInfo:
+      example:
+        status: status
+      properties:
+        status:
+          type: string
+      required:
+        - status
+      type: object
+    StartCommand:
+      properties:
+        command:
+          enum:
+            - start
+          type: string
+        trainingParams:
+          $ref: "#/components/schemas/StartCommand_trainingParams"
+      required:
+        - command
+        - trainingParams
+      type: object
+    StopCommand:
+      properties:
+        command:
+          enum:
+            - stop
+          type: string
+      required:
+        - command
+      type: object
+    StartCommand_trainingParams:
+      properties:
+        modelName:
+          type: string
+        tubs:
+          items:
+            type: string
+          type: array
+        augmentations:
+          items:
+            type: string
+          type: array
+      required:
+        - augmentations
+        - modelName
+        - tubs
