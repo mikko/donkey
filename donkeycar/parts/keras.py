@@ -7,7 +7,7 @@ functions to run and train autopilots using keras
 """
 
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-from tensorflow.python.keras.layers import Convolution2D, Concatenate
+from tensorflow.python.keras.layers import Convolution2D, Concatenate, Conv3D
 from tensorflow.python.keras.layers import Dropout, Flatten, Dense
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
@@ -243,6 +243,69 @@ def custom_sequential():
     x = Convolution2D(64, (3, 3), strides=(2, 2), activation='relu')(
         x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
     x = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
+        x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
+
+    x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
+    x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
+    x = Dropout(.1)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
+    x = Dense(50, activation='relu')(x)  # Classify the data into 50 features, make all negatives 0
+    x = Dropout(.1)(x)  # Randomly drop out 10% of the neurons (Prevent overfitting)
+
+    angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
+    throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
+
+    model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
+    model.compile(optimizer='adam',
+                  loss={'angle_out': 'mean_squared_error',
+                        'throttle_out': 'mean_squared_error'},
+                  loss_weights={'angle_out': 0.6, 'throttle_out': 0.4})
+
+    return model
+
+
+class CNN_3D(KerasPilot):
+    def __init__(self, model=None, *args, **kwargs):
+        super(CNN_3D, self).__init__(*args, **kwargs)
+        if model:
+            self.model = model
+        else:
+            self.model = buid_cnn_3d()
+        self.prev_image = None
+
+    def inputs(self):
+        return ['cam/image_3D']
+
+    def run(self, img_arr):
+        print('Remember np.stack')
+        print('TODO: Figure our this possible CNN_3D.run reshape mess')
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+
+        if (self.prev_image == None):
+            self.prev_image = img_arr
+
+        stacked = np.stack([img_arr, self.prev_image], axis=0)
+
+        angle, throttle = self.model.predict([stacked])
+        return angle[0][0], throttle[0][0]
+
+def buid_cnn_3d():
+    img_in = Input(shape=(2, 100, 240, 3),
+                   name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
+
+    # TODO: MaxPooling3D?
+    # TODO: BatchNormalization?
+
+    # Current image convolution
+    x = img_in
+    x = Conv3D(24, (3, 5, 5), strides=(1, 3, 3), activation='relu', padding='same', data_format='channels_last')(
+        x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
+    x = Conv3D(32, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
+        x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
+    x = Conv3D(64, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
+        x)  # 64 features, 5px5p kernal window, 2wx2h stride, relu
+    x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
+        x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
+    x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
 
     x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)

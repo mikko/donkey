@@ -191,7 +191,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     kl.train(train_gen,
              val_gen,
-             saved_model_path=f'{new_model_path}',
+             saved_model_path=new_model_path,
              steps=steps_per_epoch,
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
