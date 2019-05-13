@@ -29,7 +29,7 @@ BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
-DEFAULT_CLASS = 'CustomSequential'
+DEFAULT_CLASS = 'CNN_3D'
 
 img_count = 0
 
@@ -44,6 +44,7 @@ def load_image(path):
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
+    prev_image = None
     while True:
         for (record_path, tub_path) in record_paths:
             with open(record_path, 'r') as record_file:
@@ -55,12 +56,11 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
                 for i in range(len(inputs)):
                     type = input_types[i]
                     if (type == 'image_array'):
-                        inputs[i] = load_image("%s/%s" % (tub_path, inputs[i]))
-                    elif (type == 'custom/prev_image'):
-                        # Currently previous images are in array, but there is only one
-                        imagePath = inputs[i][0]
-                        inputs[i] = load_image("%s/%s" % (tub_path, imagePath))
-
+                        curr_image = load_image("%s/%s" % (tub_path, inputs[i]))
+                        if (prev_image is None):
+                            prev_image = curr_image
+                        inputs[i] = np.stack([curr_image, prev_image], axis=0)
+                        prev_image = curr_image
                 yield inputs, outputs
                 ls = [(inputs, outputs)]
                 for aug in augmentations:
@@ -122,7 +122,7 @@ def get_train_val_gen(inputs, outputs, tub_names, augmentations):
                 # TODO: Check if meta.json specs match with given inputs and outputs
                 record_files = glob.glob('%s/record*.json' % tub)
                 files_and_paths = list(map(lambda rec: (rec, tub), record_files))
-                np.random.shuffle(files_and_paths)
+                # np.random.shuffle(files_and_paths)
                 split = int(round(len(files_and_paths) * TRAIN_TEST_SPLIT))
                 train_files, validation_files = files_and_paths[:split], files_and_paths[split:]
                 record_count += len(files_and_paths) * (2 ** len(augmentations))
@@ -151,7 +151,8 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     augmentations = []
 
-    if (augment):
+    print('All augmentation temporarily disabled for 3DCNN')
+    if (False and augment):
         if not skip_flip:
             augmentations.append(aug_flip)
         if not skip_brightness:

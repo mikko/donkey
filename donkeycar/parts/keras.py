@@ -273,11 +273,12 @@ class CNN_3D(KerasPilot):
         self.prev_image = None
 
     def inputs(self):
-        return ['cam/image_3D']
+        return ['cam/image_array']
 
     def run(self, img_arr):
         print('Remember np.stack')
         print('TODO: Figure our this possible CNN_3D.run reshape mess')
+        print(img_arr.shape)
         img_arr = img_arr.reshape((1,) + img_arr.shape)
 
         if (self.prev_image == None):
