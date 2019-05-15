@@ -13,11 +13,15 @@ import glob
 import json
 import os
 
+from timeit import default_timer as timer
+
 import numpy as np
 import cv2
 
 from docopt import docopt
 from datetime import datetime
+
+from PIL import Image 
 
 import donkeycar as dk
 # import parts
@@ -40,7 +44,8 @@ def write_img(img, type):
     cv2.imwrite(name, img)
 
 def load_image(path):
-    img = cv2.imread(path)
+    img = Image.open(path)
+    img = img.resize((60,25),resample=0)
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
@@ -136,6 +141,8 @@ def get_train_val_gen(inputs, outputs, tub_names, augmentations):
 
 def train(tub_names, new_model_path=None, base_model_path=None, module_name=None, class_name=None, augment=True, skip_flip=False, skip_brightness=False, skip_shadow=False):
 
+    start_time = timer()
+
     if not module_name:
         module_name = DEFAULT_MODULE
     if not class_name:
@@ -195,6 +202,10 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
              steps=steps_per_epoch,
              train_split=TRAIN_TEST_SPLIT,
              use_early_stop=False)
+
+    end_time = timer()
+    
+    print('Elapsed time: ', end_time - start_time)
 
 if __name__ == '__main__':
     args = docopt(__doc__)

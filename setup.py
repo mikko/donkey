@@ -31,7 +31,7 @@ setup(name='donkeycar',
                         'python-socketio',
                         'flask',
                         'eventlet',
-                        'moviepy',
+                        #'moviepy',
                         'pandas',
                         ],
 

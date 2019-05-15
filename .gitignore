@@ -21,3 +21,9 @@ build
 .pytest_cache
 
 .coverage
+
+models
+mycar
+latest_model.json
+muistissa.txt
+tensorboard_logs
