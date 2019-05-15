@@ -45,7 +45,7 @@ def write_img(img, type):
 
 def load_image(path):
     img = Image.open(path)
-    img = img.resize((60,25),resample=0)
+    img = img.resize((60,25),Image.BILINEAR)
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):

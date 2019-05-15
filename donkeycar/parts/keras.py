@@ -14,6 +14,7 @@ from tensorflow.python.keras.models import Model, load_model
 
 import datetime
 import numpy as np
+from PIL import Image 
 
 class KerasPilot:
 
@@ -32,7 +33,7 @@ class KerasPilot:
         return ['cam/image_array']
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=2, steps=2, train_split=0.8,
+              saved_model_path, epochs=5, steps=5, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
@@ -115,6 +116,9 @@ class CustomWithHistory(KerasPilot):
         sonar_right_history = np.array(sonar_right_history)
         sonar_center_history = np.array(sonar_center_history)
 
+        for img in img_arr:
+            img = Image.open(img)
+            img.resize((60,25), Image.BILINEAR)
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         angle_history = angle_history.reshape((1,) + angle_history.shape)
         throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
@@ -165,15 +169,27 @@ def custom_with_history(history_len):
     # x = Convolution2D(64, (3, 3), strides=(2, 2), activation='relu')(
     #     x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
     # x = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
-    #     x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
+    #     x)  # 64 features, 3px3p kernal window, 1wx1h stride, reluß
 
     #Convolution for resized images 
+    # x = img_in
+    # x = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu')(
+    #     x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
+    # x = Convolution2D(32, (5, 5), strides=(2, 2), activation='relu')(
+    #     x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
+    # x = Convolution2D(64, (2, 2), strides=(1, 1), activation='relu')(
+    #     x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
+
     x = img_in
-    x = Convolution2D(24, (5, 5), strides=(2, 2), activation='relu')(
+    x = Convolution2D(24, (5, 5), activation='relu')(
         x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
-    x = Convolution2D(32, (5, 5), strides=(2, 2), activation='relu')(
+    x = Convolution2D(32, (5, 5), activation='relu')(
         x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
-    x = Convolution2D(64, (2, 2), strides=(1, 1), activation='relu')(
+    x = Convolution2D(64, (5, 5), activation='relu')(
+        x)  # 64 features, 5px5p kernal window, 2wx2h stride, relu
+    x = Convolution2D(64, (3, 3), activation='relu')( 
+        x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
+    x = Convolution2D(64, (3, 3), strides=(1, 1), activation='relu')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
 
     # Possibly add MaxPooling (will make it less sensitive to position in image).  Camera angle fixed, so may not to be needed
@@ -233,9 +249,12 @@ class CustomSequential(KerasPilot):
         return ['cam/image_array']
 
     def run(self, img_arr):
+        for img in img_arr:
+            img = Image.open(img)
+            img.resize((60,25), Image.BILINEAR)
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-
         angle, throttle = self.model.predict([img_arr])
+
         return angle[0][0], throttle[0][0]
 
 def custom_sequential():
