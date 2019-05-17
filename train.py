@@ -41,6 +41,7 @@ def write_img(img, type):
     global img_count
     name = 'output/file_' + str(img_count) + '_' + type + '.jpg'
     img_count = img_count + 1
+    img = img.resize((60,25), Image.BILINEAR)
     cv2.imwrite(name, img)
 
 def load_image(path):

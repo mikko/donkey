@@ -33,7 +33,7 @@ class KerasPilot:
         return ['cam/image_array']
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=5, steps=5, train_split=0.8,
+              saved_model_path, epochs=10, steps=10, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
@@ -118,8 +118,10 @@ class CustomWithHistory(KerasPilot):
 
         for img in img_arr:
             img = Image.open(img)
-            img.resize((60,25), Image.BILINEAR)
-        img_arr = img_arr.reshape((1,) + img_arr.shape)
+            img = img.resize((60,25), Image.BILINEAR)
+            reshaped.append(img)
+
+        re_img_arr = reshaped.reshape((1,) + reshaped.shape)
         angle_history = angle_history.reshape((1,) + angle_history.shape)
         throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
         acceleration_x_history = acceleration_x_history.reshape((1,) + acceleration_x_history.shape)
@@ -130,7 +132,7 @@ class CustomWithHistory(KerasPilot):
         sonar_center_history = sonar_center_history.reshape((1,) + sonar_center_history.shape)
 
         angle, throttle = self.model.predict([
-            img_arr,
+            re_img_arr,
             angle_history,
             throttle_history,
             acceleration_x_history,
@@ -249,9 +251,6 @@ class CustomSequential(KerasPilot):
         return ['cam/image_array']
 
     def run(self, img_arr):
-        for img in img_arr:
-            img = Image.open(img)
-            img.resize((60,25), Image.BILINEAR)
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         angle, throttle = self.model.predict([img_arr])
 
