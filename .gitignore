@@ -14,6 +14,12 @@ lag_log.csv
 site/*
 build
 
+latest_model.json
+models/
+mycar/
+save_models/
+tensorboard_logs/
+
 #IDE
 .idea
 .spyproject
