@@ -116,11 +116,6 @@ class CustomWithHistory(KerasPilot):
         sonar_right_history = np.array(sonar_right_history)
         sonar_center_history = np.array(sonar_center_history)
 
-        for img in img_arr:
-            img = Image.open(img)
-            img = img.resize((60,25), Image.BILINEAR)
-            reshaped.append(img)
-
         re_img_arr = reshaped.reshape((1,) + reshaped.shape)
         angle_history = angle_history.reshape((1,) + angle_history.shape)
         throttle_history = throttle_history.reshape((1,) + throttle_history.shape)
