@@ -24,6 +24,8 @@ import donkeycar as dk
 from donkeycar.util.loader import create_instance
 from augment import aug_brightness, aug_shadow2, aug_flip
 
+from PIL import Image 
+
 # These used to live in config but not anymore
 BATCH_SIZE = 128
 TRAIN_TEST_SPLIT = 0.9
@@ -33,6 +35,8 @@ DEFAULT_CLASS = 'CNN_3D'
 
 img_count = 0
 
+image_resize = (160,120) #defines the size image is resized to, set False to avoid reshaping 
+
 def write_img(img, type):
     global img_count
     name = 'output/file_' + str(img_count) + '_' + type + '.jpg'
@@ -40,7 +44,11 @@ def write_img(img, type):
     cv2.imwrite(name, img)
 
 def load_image(path):
-    img = cv2.imread(path)
+    if not image_resize: 
+        img = cv2.imread(path) #default without any reshaping 
+    else:
+        img = Image.open(path)
+        img = img.resize(image_resize, Image.BILINEAR) 
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
@@ -175,7 +183,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names, augmentations)
 
     steps_per_epoch = total_train // BATCH_SIZE
-
+   
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
 
