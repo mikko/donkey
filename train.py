@@ -35,7 +35,7 @@ DEFAULT_CLASS = 'CNN_3D'
 
 img_count = 0
 
-image_resize = (160,120) #defines the size image is resized to, set False to avoid reshaping 
+image_resize = (120, 160) #defines the size image is resized to, set False to avoid reshaping 
 
 def write_img(img, type):
     global img_count

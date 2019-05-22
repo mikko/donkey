@@ -12,13 +12,13 @@ from tensorflow.python.keras.layers import Dropout, Flatten, Dense
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
 
-from tensorflow.python.keras.layers import MaxPooling3D
+from tensorflow.python.keras.layers import MaxPooling3D, BatchNormalization
 
 import datetime
 import numpy as np
 
 # data input sizes for convolution models 
-input_shape_3d = (2, 120, 160, 3)
+input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels 
 input_shape_2d = (100, 240, 3)
 
 class KerasPilot:
@@ -38,7 +38,7 @@ class KerasPilot:
         return ['cam/image_array']
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=5, steps=5, train_split=0.8,
+              saved_model_path, epochs=100, steps=100, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
@@ -306,6 +306,7 @@ def buid_cnn_3d():
     x = img_in
     x = Conv3D(24, (3, 5, 5), strides=(1, 3, 3), activation='relu', padding='same', data_format='channels_last')(
         x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
+    x =  MaxPooling3D(pool_size=(2, 2, 2), strides=None, padding='valid', data_format=None)(x) 
     x = Conv3D(32, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
     # x = Conv3D(64, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
@@ -314,14 +315,14 @@ def buid_cnn_3d():
     #     x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
     x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
-
-    x =  MaxPooling3D(pool_size=(2, 2, 2), strides=None, padding='valid', data_format=None)(x) 
+    x =  MaxPooling3D(pool_size=(1, 2, 2), strides=None, padding='valid', data_format=None)(x) 
+   
 
     x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
     x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
-    x = Dropout(.1)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
+    x = Dropout(.3)(x)  # Randomly drop out (turn off) 10% of the neurons (Prevent overfitting)
     x = Dense(50, activation='sigmoid')(x)  # Classify the data into 50 features, make all negatives 0
-    x = Dropout(.1)(x)  # Randomly drop out 10% of the neurons (Prevent overfitting)
+    x = Dropout(.3)(x)  # Randomly drop out 10% of the neurons (Prevent overfitting)
 
     angle_out = Dense(units=1, activation='linear', name='angle_out')(x)
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
