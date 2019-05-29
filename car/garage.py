@@ -16,15 +16,16 @@ from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
 from donkeycar.parts.sonar import Sonar
 from donkeycar.parts.ebrake import EBrake
-from donkeycar.parts.subwoofer import Subwoofer
+#from donkeycar.parts.subwoofer import Subwoofer
 from donkeycar.parts.history import History
+from donkeycar.parts.T265 import T265
 
 if isRaspberryPi:
     from donkeycar.parts.camera import PiCamera as Camera
     from donkeycar.parts.actuator import PCA9685 as Servoshield
     from donkeycar.parts.actuator import PWMSteering as Servo
     from donkeycar.parts.actuator import PWMThrottle as ESC
-    from donkeycar.parts.imu import Mpu6050 as IMU
+#    from donkeycar.parts.imu import Mpu6050 as IMU
 else:
     from donkeycar.parts.camera import MockCamera as Camera
     from donkeycar.parts.actuator import MockPCA9685 as Servoshield
@@ -86,7 +87,7 @@ class Garage:
             module_name = DEFAULT_PILOT_MODULE
         if not class_name:
             class_name = DEFAULT_PILOT_CLASS
-        
+
         self.vehicle = dk.vehicle.Vehicle()
 
         clock = Timestamp()
@@ -94,7 +95,12 @@ class Garage:
 
         cam = Camera(resolution=self.configuration.CAMERA_RESOLUTION)
         self.vehicle.add(cam, outputs=['cam/image_array'], threaded=True)
-        
+
+        t265 = T265()
+        self.vehicle.add(t265,
+            outputs=['t265/frame_l', 't265/self.frame_r', 't265/translation', 't265/acceleration', 't265/velocity', 't265/rotation'], 
+            threaded=True)
+
         if use_joystick or self.configuration.USE_JOYSTICK_AS_DEFAULT:
             ctr = JoystickController(max_throttle=self.configuration.JOYSTICK_MAX_THROTTLE,
                                     steering_scale=self.configuration.JOYSTICK_STEERING_SCALE,
@@ -131,8 +137,8 @@ class Garage:
         if model_path:
             kl.load(model_path)
 
-        imu = IMU()
-        self.vehicle.add(imu, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+ #       imu = IMU()
+ #       self.vehicle.add(imu, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
 
         sonar = Sonar() # What if device changes?
         self.vehicle.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
@@ -195,12 +201,12 @@ class Garage:
 
         self.vehicle.add(steering, inputs=['angle'])
 
-        subwoofer = Subwoofer()
-        self.vehicle.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
+ #       subwoofer = Subwoofer()
+ #       self.vehicle.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
 
         # add tub to save data
-        inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact']
-        types = ['image_array', 'float', 'float',  'str', 'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float']
+        inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact', 't265/velocity']
+        types = ['image_array', 'float', 'float',  'str', 'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', '3d']
 
         #multiple tubs
         #th = TubHandler(path=self.configuration.DATA_PATH)
@@ -209,7 +215,7 @@ class Garage:
         tub_inputs = ['recording'] + inputs
         tub = DynamicTubWriter(path=self.configuration.TUB_PATH, inputs=inputs, types=types)
         self.vehicle.add(tub, inputs=tub_inputs)
-        
+
         self.lock.release()
-        
+
         return self.vehicle

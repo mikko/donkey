@@ -207,7 +207,8 @@ class Tub(object):
                 name = self.make_file_name(key, ext='.jpg')
                 img.save(os.path.join(self.path, name))
                 json_data[key] = name
-
+            elif typ == '3d':
+                json_data[key] = str(val.x) + ',' + str(val.y) + ',' + str(val.z)
             else:
                 msg = 'Tub does not know what to do with this type {}'.format(typ)
                 raise TypeError(msg)
