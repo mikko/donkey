@@ -35,7 +35,7 @@ DEFAULT_CLASS = 'CNN_3D'
 
 img_count = 0
 
-image_resize = (120, 160) #defines the size image is resized to, set False to avoid reshaping 
+image_resize = (120, 160) 
 
 def write_img(img, type):
     global img_count
@@ -44,11 +44,13 @@ def write_img(img, type):
     cv2.imwrite(name, img)
 
 def load_image(path):
-    if not image_resize: 
-        img = cv2.imread(path) #default without any reshaping 
-    else:
+    try:
         img = Image.open(path)
-        img = img.resize(image_resize, Image.BILINEAR) 
+        img = img.convert('LA')
+        img = img.resize(image_resize, Image.BILINEAR) #size defined on top of the file
+        img.save('grsc.png')
+    except:
+        print('Error with loading images in train.py')
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
@@ -182,7 +184,8 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names, augmentations)
 
-    steps_per_epoch = total_train // BATCH_SIZE
+    #steps_per_epoch = total_train // BATCH_SIZE
+    steps_per_epoch = 10
    
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
@@ -191,7 +194,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     # count = 0
     # while running and count < 40:
     #    batch = next(train_gen)
-    #    print('Start: ', len(batch[0][0]))
+    #    print('Start: ', len(batch[0][0])) 
     #    for val in batch[1][0]:
     #        print('x-value', val)
     #    for img in batch[0][0]:

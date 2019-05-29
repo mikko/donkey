@@ -2,7 +2,7 @@
 
 keras.py
 
-functions to run and train autopilots using keras
+functions to run and train autopilots using keras. NOTE: currently only CNN_3D-class is working
 
 """
 
@@ -18,8 +18,8 @@ import datetime
 import numpy as np
 
 # data input sizes for convolution models 
-input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels 
-input_shape_2d = (100, 240, 3)
+input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels not in use currently
+input_shape_2d = (100, 240, 3) 
 
 class KerasPilot:
 
@@ -38,7 +38,7 @@ class KerasPilot:
         return ['cam/image_array']
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=100, steps=100, train_split=0.8,
+              saved_model_path, epochs=3, steps=3, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
@@ -296,10 +296,9 @@ class CNN_3D(KerasPilot):
         return angle[0][0], throttle[0][0]
 
 def buid_cnn_3d():
-    img_in = Input(shape=input_shape_3d, # Shape determined on top of the file
+    img_in = Input(shape=(2,160,120,2), # Shape determined on top of the file
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
                                    
-    # TODO: MaxPooling3D?
     # TODO: BatchNormalization?
 
     # Current image convolution
