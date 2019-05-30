@@ -15,6 +15,7 @@ import os
 
 import numpy as np
 import cv2
+from collections import deque
 
 import re
 
@@ -34,6 +35,8 @@ TRAIN_TEST_SPLIT = 0.9
 
 DEFAULT_MODULE = 'donkeycar.parts.keras'
 DEFAULT_CLASS = 'CNN_3D'
+
+OUTPUT_ADVANCE = 0
 
 img_count = 0
 
@@ -55,11 +58,22 @@ def load_image(path):
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
     prev_image = None
+
+    input_buffer = deque(maxlen=OUTPUT_ADVANCE + 1)
+
+    print('Delaying outputs for image ' + str(OUTPUT_ADVANCE) + ' steps')
+
     while True:
         ls = []
         for (record_path, tub_path) in record_paths:
             with open(record_path, 'r') as record_file:
-                record = json.load(record_file)
+                try:
+                    record = json.load(record_file)
+                except:
+                    print(tub_path)
+                    import sys
+                    print("Unexpected error:", sys.exc_info()[0])
+                    raise
                 inputs = [record[key] for key in input_keys]
                 outputs = [record[key] for key in output_keys]
                 input_types = [meta[key] for key in input_keys]
@@ -72,7 +86,8 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
                             prev_image = curr_image
                         inputs[i] = np.stack([curr_image, prev_image], axis=0)
                         prev_image = curr_image
-                yield inputs, outputs
+                input_buffer.append(inputs)
+                yield input_buffer[0], outputs
                 ls = ls + [(inputs, outputs)]
         for aug in augmentations:
             new_list = []
@@ -85,6 +100,12 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
 
                 new_tuple[0][0] = np.stack([new_tuple[0][0], another_tuple[0][0]], axis=0)
                 # print(new_tuple[0])
+
+                # Output delay
+                # input_buffer.append(new_tuple[1])
+                # new_tuple = (new_tuple[0], input_buffer[0])
+                input_buffer.append(new_tuple[0])
+                new_tuple = (input_buffer[0], new_tuple[1])
                 new_list.append(new_tuple)
                 yield new_tuple
             ls = ls + new_list
@@ -211,26 +232,26 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     #        write_img(img, 'output')
     #    count = count + 1
 
-    while (True):
-        batch = next(train_gen)
-        inputs_batch = batch[0][0]
-        outputs_batch = batch[1][0]
-        for record in inputs_batch:
-            prev_image = cv2.cvtColor(record[0], cv2.COLOR_BGR2RGB)
-            cv2.imshow('prev', prev_image)
+#    while (True):
+#        batch = next(train_gen)
+#        inputs_batch = batch[0][0]
+#        outputs_batch = batch[1][0]
+#        for record in inputs_batch:
+#            prev_image = cv2.cvtColor(record[0], cv2.COLOR_BGR2RGB)
+#            cv2.imshow('prev', prev_image)
+#
+#            curr_image = cv2.cvtColor(record[1], cv2.COLOR_BGR2RGB)
+#            cv2.imshow('curr', curr_image)
+#
+#            if cv2.waitKey(200) & 0xFF == ord('q'):
+#                break
 
-            curr_image = cv2.cvtColor(record[1], cv2.COLOR_BGR2RGB)
-            cv2.imshow('curr', curr_image)
-
-            if cv2.waitKey(200) & 0xFF == ord('q'):
-                break
-
-    #kl.train(train_gen,
-    #         val_gen,
-    #         saved_model_path=new_model_path,
-    #         steps=steps_per_epoch,
-    #         train_split=TRAIN_TEST_SPLIT,
-    #         use_early_stop=False)
+    kl.train(train_gen,
+             val_gen,
+             saved_model_path=new_model_path,
+             steps=steps_per_epoch,
+             train_split=TRAIN_TEST_SPLIT,
+             use_early_stop=False)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
