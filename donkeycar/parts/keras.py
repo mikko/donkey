@@ -11,14 +11,15 @@ from tensorflow.python.keras.layers import Convolution2D, Concatenate, Conv3D
 from tensorflow.python.keras.layers import Dropout, Flatten, Dense
 from tensorflow.python.keras.layers import Input
 from tensorflow.python.keras.models import Model, load_model
+from tensorflow.python.keras.optimizers import Adam
 
 from tensorflow.python.keras.layers import MaxPooling3D, BatchNormalization
 
 import datetime
 import numpy as np
 
-# data input sizes for convolution models 
-input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels 
+# data input sizes for convolution models
+input_shape_3d = (2, 50, 120, 3) #??, width, hight, channels
 input_shape_2d = (100, 240, 3)
 
 class KerasPilot:
@@ -61,7 +62,7 @@ class KerasPilot:
 
         date = datetime.datetime.now().strftime('%y-%m-%d-%H-%M')
 
-        tbCallBack = TensorBoard(log_dir=('./tensorboard_logs/%s' % date), histogram_freq=0, write_graph=True,
+        tbCallBack = TensorBoard(log_dir=('./tensorboard_logs/%s-%s' % (date,saved_model_path)), histogram_freq=0, write_graph=True,
                                                  write_images=True)
 
         callbacks_list = [save_best, tbCallBack]
@@ -298,7 +299,7 @@ class CNN_3D(KerasPilot):
 def buid_cnn_3d():
     img_in = Input(shape=input_shape_3d, # Shape determined on top of the file
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
-                                   
+
     # TODO: MaxPooling3D?
     # TODO: BatchNormalization?
 
@@ -306,7 +307,7 @@ def buid_cnn_3d():
     x = img_in
     x = Conv3D(24, (3, 5, 5), strides=(1, 3, 3), activation='relu', padding='same', data_format='channels_last')(
         x)  # 24 features, 5 pixel x 5 pixel kernel (convolution, feauture) window, 2wx2h stride, relu activation
-    x =  MaxPooling3D(pool_size=(2, 2, 2), strides=None, padding='valid', data_format=None)(x) 
+    x =  MaxPooling3D(pool_size=(2, 2, 2), strides=None, padding='valid', data_format=None)(x)
     x = Conv3D(32, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
     # x = Conv3D(64, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
@@ -315,8 +316,8 @@ def buid_cnn_3d():
     #     x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
     x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
-    x =  MaxPooling3D(pool_size=(1, 2, 2), strides=None, padding='valid', data_format=None)(x) 
-   
+    x =  MaxPooling3D(pool_size=(1, 2, 2), strides=None, padding='valid', data_format=None)(x)
+
 
     x = Flatten(name='flattened')(x)  # Flatten to 1D (Fully connected)
     x = Dense(100, activation='relu')(x)  # Classify the data into 100 features, make all negatives 0
@@ -328,7 +329,8 @@ def buid_cnn_3d():
     throttle_out = Dense(units=1, activation='linear', name='throttle_out')(x)
 
     model = Model(inputs=[img_in], outputs=[angle_out, throttle_out])
-    model.compile(optimizer='adam',
+    opt = Adam(lr=0.0001)
+    model.compile(optimizer=opt,
                   loss={'angle_out': 'mean_squared_error',
                         'throttle_out': 'mean_squared_error'},
                   loss_weights={'angle_out': 0.6, 'throttle_out': 0.4})
