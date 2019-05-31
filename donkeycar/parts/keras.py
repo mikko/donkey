@@ -21,7 +21,7 @@ import numpy as np
 import time
 
 # data input sizes for convolution models
-input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels
+input_shape_3d = (2, 50, 120, 3) #??, width, hight, channels
 input_shape_2d = (100, 240, 3)
 
 class KerasPilot:
