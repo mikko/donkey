@@ -38,7 +38,7 @@ class KerasPilot:
         return ['cam/image_array']
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=3, steps=3, train_split=0.8,
+              saved_model_path, epochs=10, steps=10, train_split=0.8,
               verbose=1, min_delta=.0005, patience=8, use_early_stop=True):
         """
         train_gen: generator that yields an array of images an array of
@@ -296,7 +296,7 @@ class CNN_3D(KerasPilot):
         return angle[0][0], throttle[0][0]
 
 def buid_cnn_3d():
-    img_in = Input(shape=(2,160,120,2), # Shape determined on top of the file
+    img_in = Input(shape=(2,80,80,2), # Shape determined on top of the file
                    name='img_in')  # First layer, input layer, Shape comes from camera.py resolution, RGB
                                    
     # TODO: BatchNormalization?
@@ -308,10 +308,6 @@ def buid_cnn_3d():
     x =  MaxPooling3D(pool_size=(2, 2, 2), strides=None, padding='valid', data_format=None)(x) 
     x = Conv3D(32, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 32 features, 5px5p kernel window, 2wx2h stride, relu activatiion
-    # x = Conv3D(64, (3, 5, 5), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
-    #     x)  # 64 features, 5px5p kernal window, 2wx2h stride, relu
-    # x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
-    #     x)  # 64 features, 3px3p kernal window, 2wx2h stride, relu
     x = Conv3D(64, (3, 3, 3), strides=(1, 1, 1), activation='relu', padding='same', data_format='channels_last')(
         x)  # 64 features, 3px3p kernal window, 1wx1h stride, relu
     x =  MaxPooling3D(pool_size=(1, 2, 2), strides=None, padding='valid', data_format=None)(x) 

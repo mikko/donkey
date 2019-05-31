@@ -14,7 +14,8 @@ import json
 import os
 
 import numpy as np
-import cv2
+
+#import cv2
 
 from docopt import docopt
 from datetime import datetime
@@ -35,22 +36,21 @@ DEFAULT_CLASS = 'CNN_3D'
 
 img_count = 0
 
-image_resize = (120, 160) 
+image_resize = (80,80) 
 
 def write_img(img, type):
     global img_count
     name = 'output/file_' + str(img_count) + '_' + type + '.jpg'
     img_count = img_count + 1
     cv2.imwrite(name, img)
-
+    
 def load_image(path):
     try:
         img = Image.open(path)
-        img = img.convert('LA')
         img = img.resize(image_resize, Image.BILINEAR) #size defined on top of the file
-        img.save('grsc.png')
+        img = img.convert('LA') #converts the images to grayscale
     except:
-        print('Error with loading images in train.py')
+        print('Error with loading  and converting images in train.py')
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
@@ -80,6 +80,7 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
                         new_list.append(new_tuple)
                         yield new_tuple
                     ls = ls + new_list
+        
 
 def get_batch_generator(input_keys, output_keys, records, meta, augmentation):
     # Yield here a tuple (inputs, outputs)
@@ -184,22 +185,10 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names, augmentations)
 
-    #steps_per_epoch = total_train // BATCH_SIZE
-    steps_per_epoch = 10
+    steps_per_epoch = total_train // BATCH_SIZE
    
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
-
-    # running = True
-    # count = 0
-    # while running and count < 40:
-    #    batch = next(train_gen)
-    #    print('Start: ', len(batch[0][0])) 
-    #    for val in batch[1][0]:
-    #        print('x-value', val)
-    #    for img in batch[0][0]:
-    #        write_img(img, 'output')
-    #    count = count + 1
 
     kl.train(train_gen,
              val_gen,
