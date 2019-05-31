@@ -273,8 +273,8 @@ class JoystickController(object):
 
         while self.running:
             button, button_state, axis, axis_val = self.js.poll()
-
             if axis == self.steering_axis:
+                # Adaptive steering
                 self.angle = self.steering_scale * axis_val
 
             if axis == self.throttle_axis:
@@ -310,7 +310,7 @@ class JoystickController(object):
 
                 print('recording:', self.recording)
 
-            if button == 'DISABLED' and button_state == 1:
+            if button == 'tr' and button_state == 1:
                 """
                 increase max throttle setting
                 """
@@ -321,7 +321,7 @@ class JoystickController(object):
 
                 print('max_throttle:', self.max_throttle)
 
-            if button == 'DISABLED' and button_state == 1:
+            if button == 'tl' and button_state == 1:
                 """
                 decrease max throttle setting
                 """
@@ -346,14 +346,14 @@ class JoystickController(object):
                 self.throttle_scale = round(max(-1.0, self.throttle_scale - 0.05), 2)
                 print('throttle_scale:', self.throttle_scale)
 
-            if button == 'base2' and button_state == 1:
+            if button == 'y' and button_state == 1:
                 """
                 increase steering scale
                 """
                 self.steering_scale = round(min(1.0, self.steering_scale + 0.05), 2)
                 print('steering_scale:', self.steering_scale)
 
-            if button == 'pinkie' and button_state == 1:
+            if button == 'x' and button_state == 1:
                 """
                 decrease steering scale
                 """

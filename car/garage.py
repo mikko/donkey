@@ -131,8 +131,8 @@ class Garage:
         if model_path:
             kl.load(model_path)
 
-        imu = IMU()
-        self.vehicle.add(imu, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
+#        imu = IMU()
+#        self.vehicle.add(imu, outputs=['acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature'], threaded=True)
 
         sonar = Sonar() # What if device changes?
         self.vehicle.add(sonar, outputs=['sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact'], threaded=True)
@@ -199,8 +199,8 @@ class Garage:
         self.vehicle.add(subwoofer, inputs=['user/mode', 'recording', 'emergency_brake'])
 
         # add tub to save data
-        inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'acceleration/x', 'acceleration/y', 'acceleration/z', 'gyro/x', 'gyro/y', 'gyro/z', 'temperature', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact']
-        types = ['image_array', 'float', 'float',  'str', 'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float', 'float']
+        inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp', 'sonar/left', 'sonar/center', 'sonar/right', 'sonar/time_to_impact', 'pilot/angle', 'pilot/throttle']
+        types = ['image_array', 'float', 'float',  'str', 'str', 'float', 'float', 'float', 'float', 'float', 'float']
 
         #multiple tubs
         #th = TubHandler(path=self.configuration.DATA_PATH)

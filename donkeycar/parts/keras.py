@@ -17,6 +17,8 @@ from tensorflow.python.keras.layers import MaxPooling3D, BatchNormalization
 import datetime
 import numpy as np
 
+import time
+
 # data input sizes for convolution models 
 input_shape_3d = (2, 160, 120, 3) #??, width, hight, channels 
 input_shape_2d = (100, 240, 3)
@@ -24,6 +26,7 @@ input_shape_2d = (100, 240, 3)
 class KerasPilot:
 
     def load(self, model_path):
+        print(model_path)
         self.model = load_model(model_path)
 
     def shutdown(self):
@@ -229,9 +232,12 @@ class CustomSequential(KerasPilot):
         return ['cam/image_array']
 
     def run(self, img_arr):
+        start = time.time()
         img_arr = img_arr.reshape((1,) + img_arr.shape)
 
         angle, throttle = self.model.predict([img_arr])
+        end = time.time()
+        print(end-start)
         return angle[0][0], throttle[0][0]
 
 def custom_sequential():
@@ -282,17 +288,32 @@ class CNN_3D(KerasPilot):
         return ['cam/image_array']
 
     def run(self, img_arr):
-        print('Remember np.stack')
-        print('TODO: Figure our this possible CNN_3D.run reshape mess')
-        print(img_arr.shape)
-        img_arr = img_arr.reshape((1,) + img_arr.shape)
-
-        if (self.prev_image == None):
+        start = time.time()
+#        print('Remember np.stack')
+#        print('TODO: Figure our this possible CNN_3D.run reshape mess')
+#        print(img_arr.shape)
+#        print('3D tick')
+        if (self.prev_image is None):
             self.prev_image = img_arr
+
+#        print('prev image', self.prev_image.shape)
+#        print('curr image', img_arr.shape)
 
         stacked = np.stack([img_arr, self.prev_image], axis=0)
 
+#        print('stacked', stacked.shape)
+
+        stacked = stacked.reshape((1,) + stacked.shape)
+
         angle, throttle = self.model.predict([stacked])
+
+        self.prev_image = img_arr
+
+#        print(angle, throttle)
+
+        end = time.time()
+        print(end - start)
+
         return angle[0][0], throttle[0][0]
 
 def buid_cnn_3d():

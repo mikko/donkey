@@ -95,6 +95,7 @@ class PWMThrottle:
         if (math.isnan(throttle)):
             print('Throttle NaN fixed to 0')
             throttle = 0
+#        print('Throttle', throttle)
         if throttle > 0:
             pulse = dk.util.data.map_range(throttle,
                                                     0, self.MAX_THROTTLE,

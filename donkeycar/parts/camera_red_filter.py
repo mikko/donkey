@@ -38,6 +38,11 @@ class PiCamera(BaseCamera):
     def run(self):
         f = next(self.stream)
         frame = crop(f.array)
+        frame[:,:,0] = (frame[:,:,0] > frame[:,:,1]) * frame[:,:,0]
+        frame[:,:,0] = (frame[:,:,0] > frame[:,:,2]) * frame[:,:,0]
+        frame[:,:,1] = frame[:,:,1] * 0.1
+        frame[:,:,2] = frame[:,:,2] * 0.1
+        frame[:,:,0] = (frame[:,:,0] > 180) * 255
         self.rawCapture.truncate(0)
         return frame
 
@@ -46,11 +51,7 @@ class PiCamera(BaseCamera):
         for f in self.stream:
             # grab the frame from the stream and clear the stream in
             # preparation for the next frame
-            frame = crop(f.array)
-            frame = Image.fromarray(frame)
-            frame = frame.resize((120,50), Image.BILINEAR)
-            frame = np.asarray(frame)
-            self.frame = frame
+            self.frame = crop(f.array)
             self.rawCapture.truncate(0)
 
             # if the thread indicator variable is set, stop the thread
