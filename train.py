@@ -15,6 +15,9 @@ import os
 
 import numpy as np
 import cv2
+from collections import deque
+
+import re
 
 from docopt import docopt
 from datetime import datetime
@@ -24,7 +27,7 @@ import donkeycar as dk
 from donkeycar.util.loader import create_instance
 from augment import aug_brightness, aug_shadow2, aug_flip
 
-from PIL import Image 
+from PIL import Image
 
 # These used to live in config but not anymore
 BATCH_SIZE = 128
@@ -33,9 +36,11 @@ TRAIN_TEST_SPLIT = 0.9
 DEFAULT_MODULE = 'donkeycar.parts.keras'
 DEFAULT_CLASS = 'CNN_3D'
 
+OUTPUT_ADVANCE = 0
+
 img_count = 0
 
-image_resize = (120, 160) #defines the size image is resized to, set False to avoid reshaping 
+image_resize = (120, 50) #defines the size image is resized to, set False to avoid reshaping
 
 def write_img(img, type):
     global img_count
@@ -44,19 +49,31 @@ def write_img(img, type):
     cv2.imwrite(name, img)
 
 def load_image(path):
-    if not image_resize: 
-        img = cv2.imread(path) #default without any reshaping 
+    if not image_resize:
+        img = cv2.imread(path) #default without any reshaping
     else:
         img = Image.open(path)
-        img = img.resize(image_resize, Image.BILINEAR) 
+        img = img.resize(image_resize, Image.BILINEAR)
     return np.array(img)
 
 def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
     prev_image = None
+
+    input_buffer = deque(maxlen=OUTPUT_ADVANCE + 1)
+
+    print('Delaying outputs for image ' + str(OUTPUT_ADVANCE) + ' steps')
+
     while True:
+        ls = []
         for (record_path, tub_path) in record_paths:
             with open(record_path, 'r') as record_file:
-                record = json.load(record_file)
+                try:
+                    record = json.load(record_file)
+                except:
+                    print(tub_path)
+                    import sys
+                    print("Unexpected error:", sys.exc_info()[0])
+                    raise
                 inputs = [record[key] for key in input_keys]
                 outputs = [record[key] for key in output_keys]
                 input_types = [meta[key] for key in input_keys]
@@ -69,15 +86,29 @@ def get_generator(input_keys, output_keys, record_paths, meta, augmentations):
                             prev_image = curr_image
                         inputs[i] = np.stack([curr_image, prev_image], axis=0)
                         prev_image = curr_image
-                yield inputs, outputs
-                ls = [(inputs, outputs)]
-                for aug in augmentations:
-                    new_list = []
-                    for item in ls:
-                        new_tuple = aug(item[0], item[1])
-                        new_list.append(new_tuple)
-                        yield new_tuple
-                    ls = ls + new_list
+                input_buffer.append(inputs)
+                yield input_buffer[0], outputs
+                ls = ls + [(inputs, outputs)]
+        for aug in augmentations:
+            new_list = []
+            for item in ls:
+                # print(item[0][0][0].shape)
+                new_tuple = aug([item[0][0][0]], item[1])
+
+                # TUGGUMMI
+                another_tuple = aug([item[0][0][1]], item[1])
+
+                new_tuple[0][0] = np.stack([new_tuple[0][0], another_tuple[0][0]], axis=0)
+                # print(new_tuple[0])
+
+                # Output delay
+                # input_buffer.append(new_tuple[1])
+                # new_tuple = (new_tuple[0], input_buffer[0])
+                input_buffer.append(new_tuple[0])
+                new_tuple = (input_buffer[0], new_tuple[1])
+                new_list.append(new_tuple)
+                yield new_tuple
+            ls = ls + new_list
 
 def get_batch_generator(input_keys, output_keys, records, meta, augmentation):
     # Yield here a tuple (inputs, outputs)
@@ -129,7 +160,10 @@ def get_train_val_gen(inputs, outputs, tub_names, augmentations):
                 first_meta = meta
                 # TODO: Check if meta.json specs match with given inputs and outputs
                 record_files = glob.glob('%s/record*.json' % tub)
-                files_and_paths = list(map(lambda rec: (rec, tub), record_files))
+                # Sort the frames for 3D CNN
+                record_files = ((int(re.search('.+_(\d+).json', path).group(1)), path) for path in record_files)
+                files_and_paths = list(map(lambda rec: (rec[1], tub), sorted(record_files)))
+
                 # np.random.shuffle(files_and_paths)
                 split = int(round(len(files_and_paths) * TRAIN_TEST_SPLIT))
                 train_files, validation_files = files_and_paths[:split], files_and_paths[split:]
@@ -159,8 +193,8 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
 
     augmentations = []
 
-    print('All augmentation temporarily disabled for 3DCNN')
-    if (False and augment):
+    # print('All augmentation temporarily disabled for 3DCNN')
+    if (augment):
         if not skip_flip:
             augmentations.append(aug_flip)
         if not skip_brightness:
@@ -183,7 +217,7 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     train_gen, val_gen, total_train = get_train_val_gen(inputs, outputs, tub_names, augmentations)
 
     steps_per_epoch = total_train // BATCH_SIZE
-   
+
     print("Amount of training data available", total_train)
     time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
 
@@ -197,6 +231,20 @@ def train(tub_names, new_model_path=None, base_model_path=None, module_name=None
     #    for img in batch[0][0]:
     #        write_img(img, 'output')
     #    count = count + 1
+
+#    while (True):
+#        batch = next(train_gen)
+#        inputs_batch = batch[0][0]
+#        outputs_batch = batch[1][0]
+#        for record in inputs_batch:
+#            prev_image = cv2.cvtColor(record[0], cv2.COLOR_BGR2RGB)
+#            cv2.imshow('prev', prev_image)
+#
+#            curr_image = cv2.cvtColor(record[1], cv2.COLOR_BGR2RGB)
+#            cv2.imshow('curr', curr_image)
+#
+#            if cv2.waitKey(200) & 0xFF == ord('q'):
+#                break
 
     kl.train(train_gen,
              val_gen,
