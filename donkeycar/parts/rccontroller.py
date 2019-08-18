@@ -26,7 +26,7 @@ class RCController:
     }
 
   def run_threaded(self):
-    return self.state["angle"], self.state["throttle"], self.state["mode"], self.state["recording"]
+    return self.state["steering"], self.state["throttle"], self.state["mode"], self.state["recording"]
 
   def run(self):
     array = self.serial.readline().decode("utf-8").split(",")
