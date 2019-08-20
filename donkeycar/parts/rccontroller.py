@@ -47,11 +47,15 @@ class RCController:
   def update(self):
     while self.on:
       array = self.serial.readline().decode("utf-8").split(",")
-      if len(array) >= 2:
+      if len(array) > 2:
         values = list(map(int, array))
         self.state["steering"] = interp(values[0], [MIN_STEERING, MAX_STEERING], [-1, 1])
         self.state["throttle"] = interp(values[1], [MIN_THROTTLE, MAX_THROTTLE], [-1, 1])
         self.state["mode"] = MODES[round(interp(values[2], [MIN_MODE, MAX_MODE], [0, 2]))]
+      else: # This sometimes happens on process start
+        print('Did not get enough inputs from RC serial')
+        self.state["steering"] = interp(0, [MIN_STEERING, MAX_STEERING], [-1, 1])
+        self.state["throttle"] = interp(0, [MIN_THROTTLE, MAX_THROTTLE], [-1, 1])
 
 if __name__ == "__main__":
   import time
